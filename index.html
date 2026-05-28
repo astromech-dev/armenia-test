@@ -72,6 +72,7 @@
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 16px;
+    scroll-margin-top: 160px;
   }
   .q-num {
     font-size: 12px;
@@ -256,7 +257,7 @@
 </div>
 
 <script>
-const QUESTIONS = [
+const ORIGINAL_QUESTIONS = [
   {
     hy: "Հայաստանի Հանրապետությունում իշխանությունը պատկանում է՝",
     ru: "Власть в Республике Армения принадлежит:",
@@ -589,8 +590,19 @@ const QUESTIONS = [
   }
 ];
 
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+let questions = shuffle(ORIGINAL_QUESTIONS);
+
 const state = {
-  answers: new Array(QUESTIONS.length).fill(null),
+  answers: new Array(questions.length).fill(null),
   score: 0,
   answered: 0
 };
@@ -603,7 +615,7 @@ const resetBtn = document.getElementById('resetBtn');
 
 function render() {
   quizEl.innerHTML = '';
-  QUESTIONS.forEach((q, qi) => {
+  questions.forEach((q, qi) => {
     const card = document.createElement('div');
     card.className = 'question';
     card.id = `q${qi}`;
@@ -678,24 +690,33 @@ function render() {
 function answer(qi, oi) {
   if (state.answers[qi] !== null) return;
   state.answers[qi] = oi;
-  if (oi === QUESTIONS[qi].correct) state.score++;
+  if (oi === questions[qi].correct) state.score++;
   state.answered++;
   render();
 
-  if (state.answered === QUESTIONS.length) {
+  if (state.answered === questions.length) {
     showSummary();
   } else {
-    const next = document.getElementById(`q${qi + 1}`);
-    if (next) {
-      setTimeout(() => next.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
-    }
+    setTimeout(() => scrollToQuestion(qi + 1), 220);
   }
+}
+
+function scrollToQuestion(idx) {
+  const el = document.getElementById(`q${idx}`);
+  if (!el) return;
+  const header = document.querySelector('header');
+  const headerHeight = header ? header.getBoundingClientRect().height : 0;
+  // Extra buffer so the question NUMBER and TEXT are clearly visible below the sticky header,
+  // not just the answer options.
+  const buffer = 32;
+  const top = el.getBoundingClientRect().top + window.pageYOffset - headerHeight - buffer;
+  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
 }
 
 function updateProgress() {
   scoreEl.textContent = `${state.score} / ${state.answered}`;
-  counterEl.textContent = `${state.answered} / ${QUESTIONS.length}`;
-  progressFill.style.width = `${(state.answered / QUESTIONS.length) * 100}%`;
+  counterEl.textContent = `${state.answered} / ${questions.length}`;
+  progressFill.style.width = `${(state.answered / questions.length) * 100}%`;
 }
 
 function showSummary() {
@@ -707,7 +728,7 @@ function showSummary() {
   const passed = state.score >= 17;
   div.innerHTML = `
     <h2>Արդյունք / Результат</h2>
-    <div class="result">${state.score} / ${QUESTIONS.length}</div>
+    <div class="result">${state.score} / ${questions.length}</div>
     <div class="${passed ? 'pass' : 'fail'}">
       ${passed
         ? '✓ Անցել եք թեստը / Тест пройден'
@@ -721,7 +742,8 @@ function showSummary() {
 
 resetBtn.addEventListener('click', () => {
   if (state.answered === 0 || confirm('Սկսել նորից? / Начать заново?')) {
-    state.answers = new Array(QUESTIONS.length).fill(null);
+    questions = shuffle(ORIGINAL_QUESTIONS);
+    state.answers = new Array(questions.length).fill(null);
     state.score = 0;
     state.answered = 0;
     render();
