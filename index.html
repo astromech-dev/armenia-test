@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#ffffff" />
+<title>Թեստ ՀՀ Սահմանադրության / Тест по Конституции РА</title>
+<style>
+  *,*::before,*::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #fafafa;
+    color: #1a1a1a;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .container {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+  header {
+    padding: 8px 0 16px;
+    border-bottom: 1px solid #ececec;
+    margin-bottom: 16px;
+    position: sticky;
+    top: 0;
+    background: #fafafa;
+    z-index: 10;
+  }
+  h1 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    color: #1a1a1a;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #777;
+    margin-top: 2px;
+  }
+  .progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    font-size: 13px;
+    color: #555;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 4px;
+    background: #ececec;
+    border-radius: 2px;
+    margin: 0 12px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #1a1a1a;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  .score {
+    font-variant-numeric: tabular-nums;
+  }
+  .question {
+    background: #ffffff;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .q-num {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .q-hy {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: #1a1a1a;
+  }
+  .q-ru {
+    font-size: 14px;
+    color: #777;
+    font-style: italic;
+    margin-bottom: 16px;
+    padding-left: 10px;
+    border-left: 2px solid #ececec;
+  }
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 15px;
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    font-family: inherit;
+    line-height: 1.4;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .option:hover:not(:disabled) {
+    background: #f5f5f5;
+  }
+  .option:active:not(:disabled) {
+    background: #ececec;
+  }
+  .option:disabled {
+    cursor: default;
+  }
+  .option .opt-ru {
+    display: block;
+    font-size: 13px;
+    color: #999;
+    margin-top: 4px;
+    font-style: italic;
+  }
+  .option.correct {
+    background: #ecf8ee;
+    border-color: #4caf50;
+    color: #1b5e20;
+  }
+  .option.correct .opt-ru { color: #4a7a4f; }
+  .option.wrong {
+    background: #fdecec;
+    border-color: #e53935;
+    color: #b71c1c;
+  }
+  .option.wrong .opt-ru { color: #a06060; }
+  .option.muted {
+    opacity: 0.55;
+  }
+  .feedback {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+  }
+  .feedback.show { display: block; }
+  .feedback.ok {
+    background: #ecf8ee;
+    color: #1b5e20;
+  }
+  .feedback.err {
+    background: #fdecec;
+    color: #b71c1c;
+  }
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  button.action {
+    flex: 1;
+    background: #1a1a1a;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button.action:active { background: #333; }
+  button.action.secondary {
+    background: #ffffff;
+    color: #1a1a1a;
+    border: 1px solid #ececec;
+  }
+  .summary {
+    background: #ffffff;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .summary h2 {
+    margin: 0 0 8px;
+    font-size: 18px;
+  }
+  .summary .result {
+    font-size: 32px;
+    font-weight: 600;
+    margin: 12px 0 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .summary .pass {
+    color: #1b5e20;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  .summary .fail {
+    color: #b71c1c;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  .summary .note {
+    font-size: 13px;
+    color: #777;
+    margin-top: 8px;
+  }
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+    padding: 24px 0 16px;
+  }
+  @media (min-width: 640px) {
+    .container { padding: 24px; }
+    h1 { font-size: 18px; }
+    .q-hy { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>ՀՀ Սահմանադրության թեստ</h1>
+    <div class="subtitle">Тест по Конституции Республики Армения</div>
+    <div class="progress">
+      <span class="score" id="score">0 / 0</span>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="score" id="counter">0 / 33</span>
+    </div>
+  </header>
+
+  <main id="quiz"></main>
+
+  <div class="controls">
+    <button class="action secondary" id="resetBtn">Սկսել նորից / Заново</button>
+  </div>
+
+  <footer>
+    33 հարց · անցողիկ՝ 17+ · 33 вопроса · проходной — 17+
+  </footer>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    hy: "Հայաստանի Հանրապետությունում իշխանությունը պատկանում է՝",
+    ru: "Власть в Республике Армения принадлежит:",
+    options: [
+      { hy: "կուսակցություններին", ru: "партиям" },
+      { hy: "ժողովրդին", ru: "народу" },
+      { hy: "ՀՀ կառավարությանը", ru: "правительству РА" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Ինչպիսի՞ պետություն է Հայաստանի Հանրապետությունը՝",
+    ru: "Каким государством является Республика Армения:",
+    options: [
+      { hy: "ժողովրդավարական", ru: "демократическим" },
+      { hy: "խմբավարական", ru: "авторитарным" },
+      { hy: "միապետական", ru: "монархическим" }
+    ],
+    correct: 0
+  },
+  {
+    hy: "Հայաստանի Հանրապետությունում ո՞րն է համարվում օրենսդիր մարմին՝",
+    ru: "Какой из указанных является законодательным органом в Республике Армения:",
+    options: [
+      { hy: "դատարանները", ru: "суды" },
+      { hy: "ՀՀ Ազգային ժողովը", ru: "Национальное Собрание РА" },
+      { hy: "կուսակցությունները", ru: "партии" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Հայաստանի Հանրապետության պետական լեզուն՝",
+    ru: "Государственный язык Республики Армения:",
+    options: [
+      { hy: "անգլերենն է", ru: "английский" },
+      { hy: "հայերենն է", ru: "армянский" },
+      { hy: "ռուսերենն է", ru: "русский" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Հայաստանի Հանրապետության դրոշը եռագույն է՝",
+    ru: "Флаг Республики Армения трёхцветный:",
+    options: [
+      { hy: "կարմիր, կապույտ, սպիտակ գույներով", ru: "красный, синий, белый" },
+      { hy: "կարմիր, կանաչ, սպիտակ գույներով", ru: "красный, зелёный, белый" },
+      { hy: "կարմիր, կապույտ, նարնջագույն գույներով", ru: "красный, синий, оранжевый" }
+    ],
+    correct: 2
+  },
+  {
+    hy: "Հայաստանի Հանրապետության մայրաքաղաքը՝",
+    ru: "Столица Республики Армения:",
+    options: [
+      { hy: "Գյումրին է", ru: "Гюмри" },
+      { hy: "Երևանն է", ru: "Ереван" },
+      { hy: "Էրեբունին է", ru: "Эребуни" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Ո՞վ է նշանակում նախարարին՝",
+    ru: "Кто назначает министра:",
+    options: [
+      { hy: "կուսակցությունները", ru: "партии" },
+      { hy: "Հանրապետության նախագահը", ru: "Президент Республики" },
+      { hy: "ՀՀ արդարադատության նախարարը", ru: "Министр юстиции РА" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Բոլորը հավասար են՝",
+    ru: "Все равны:",
+    options: [
+      { hy: "միմյանց առջև", ru: "друг перед другом" },
+      { hy: "օրենքի առջև", ru: "перед законом" },
+      { hy: "միայն դատարանի առջև", ru: "только перед судом" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Մարդը պարտավոր չէ ցուցմունք տալ՝",
+    ru: "Человек не обязан давать показания:",
+    options: [
+      { hy: "հանցանք կատարած անձի դեմ", ru: "против лица, совершившего преступление" },
+      { hy: "իր ընկերների դեմ", ru: "против своих друзей" },
+      { hy: "իր, ամուսնու կամ մերձավոր ազգականների վերաբերյալ", ru: "о себе, супруге или близких родственниках" }
+    ],
+    correct: 2
+  },
+  {
+    hy: "Նշվածներից ո՞վ կարող է ընտրվել Հանրապետության նախագահ՝",
+    ru: "Кто из указанных может быть избран Президентом Республики:",
+    options: [
+      { hy: "քառասուն տարին լրացած, վերջին վեց տարում միայն ՀՀ քաղաքացի հանդիսացող, վերջին վեց տարում ՀՀ-ում մշտապես բնակվող, ընտրական իրավունք ունեցող և հայերենին տիրապետող յուրաքանչյուր ոք", ru: "достигший 40 лет, последние 6 лет — гражданин только РА, последние 6 лет постоянно проживающий в РА, обладающий избирательным правом и владеющий армянским" },
+      { hy: "քսանհինգ տարին լրացած, ՀՀ-ում մշտապես բնակվող, ընտրական իրավունք ունեցող և հայերենին տիրապետող յուրաքանչյուր ոք՝ անկախ քաղաքացիությունից", ru: "достигший 25 лет, постоянно проживающий в РА, обладающий избирательным правом и владеющий армянским — независимо от гражданства" },
+      { hy: "քառասուն տարին լրացած, վերջին չորս տարում միայն ՀՀ քաղաքացի հանդիսացող, վերջին չորս տարում ՀՀ-ում մշտապես բնակվող, ընտրական իրավունք ունեցող և հայերենին տիրապետող յուրաքանչյուր ոք", ru: "достигший 40 лет, последние 4 года — гражданин только РА, последние 4 года проживающий в РА, обладающий избирательным правом и владеющий армянским" }
+    ],
+    correct: 0
+  },
+  {
+    hy: "Նշվածներից ո՞վ կարող է ընտրվել պատգամավոր՝",
+    ru: "Кто из указанных может быть избран депутатом:",
+    options: [
+      { hy: "քսանհինգ տարին լրացած, ՀՀ-ում մշտապես բնակվող, ընտրական իրավունք ունեցող և հայերենին տիրապետող յուրաքանչյուր ոք՝ անկախ քաղաքացիությունից", ru: "достигший 25 лет, постоянно проживающий в РА, владеющий армянским — независимо от гражданства" },
+      { hy: "քսանհինգ տարին լրացած, վերջին չորս տարում միայն ՀՀ քաղաքացի հանդիսացող, վերջին չորս տարում ՀՀ-ում մշտապես բնակվող, ընտրական իրավունք ունեցող և հայերենին տիրապետող յուրաքանչյուր ոք", ru: "достигший 25 лет, последние 4 года — гражданин только РА, последние 4 года проживающий в РА, обладающий избирательным правом и владеющий армянским" },
+      { hy: "քսանհինգ տարին լրացած, վերջին երկու տարում միայն ՀՀ քաղաքացի հանդիսացող, վերջին երկու տարում ՀՀ-ում մշտապես բնակվող, ընտրական իրավունք ունեցող և հայերենին տիրապետող յուրաքանչյուր ոք", ru: "достигший 25 лет, последние 2 года — гражданин только РА, последние 2 года проживающий в РА, обладающий избирательным правом и владеющий армянским" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Քանի՞ տարի ժամկետով է ընտրվում ՀՀ Ազգային ժողովը՝",
+    ru: "На какой срок избирается Национальное Собрание РА:",
+    options: [
+      { hy: "հինգ տարի ժամկետով", ru: "на пять лет" },
+      { hy: "ցմահ", ru: "пожизненно" },
+      { hy: "ութ տարի ժամկետով", ru: "на восемь лет" }
+    ],
+    correct: 0
+  },
+  {
+    hy: "Նշվածներից որո՞նք են համարվում Հայաստանի Հանրապետության վարչատարածքային միավորներ՝",
+    ru: "Что из перечисленного является административно-территориальными единицами РА:",
+    options: [
+      { hy: "շրջանները և գավառները", ru: "районы и провинции" },
+      { hy: "շրջանները", ru: "районы" },
+      { hy: "մարզերը և համայնքները", ru: "марзы и общины" }
+    ],
+    correct: 2
+  },
+  {
+    hy: "Ո՞վ է իրականացնում Հայաստանի Հանրապետությունում ներքին քաղաքականությունը՝",
+    ru: "Кто осуществляет внутреннюю политику в Республике Армения:",
+    options: [
+      { hy: "ՀՀ կառավարությունը", ru: "Правительство РА" },
+      { hy: "ժողովուրդը", ru: "народ" },
+      { hy: "դատարանը", ru: "суд" }
+    ],
+    correct: 0
+  },
+  {
+    hy: "Ո՞վ է ընդունում պատերազմ հայտարարելու և խաղաղություն հաստատելու մասին որոշումը՝",
+    ru: "Кто принимает решение об объявлении войны и установлении мира:",
+    options: [
+      { hy: "ՀՀ Ազգային ժողովը՝ պատգամավորների առաջարկությամբ", ru: "Национальное Собрание РА по предложению депутатов" },
+      { hy: "ՀՀ վարչապետը՝ ՀՀ Ազգային ժողովի առաջարկությամբ", ru: "Премьер-министр РА по предложению НС РА" },
+      { hy: "ՀՀ Ազգային ժողովը՝ ՀՀ կառավարության առաջարկությամբ", ru: "Национальное Собрание РА по предложению Правительства РА" }
+    ],
+    correct: 2
+  },
+  {
+    hy: "Նշվածներից ո՞վ ունի անձնական ազատության իրավունք՝",
+    ru: "Кто из указанных имеет право на личную свободу:",
+    options: [
+      { hy: "միայն ՀՀ քաղաքացին", ru: "только гражданин РА" },
+      { hy: "յուրաքանչյուր ոք", ru: "каждый" },
+      { hy: "ոչ ոք", ru: "никто" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Նշվածներից ո՞վ ունի նամակագրության գաղտնիության իրավունք՝",
+    ru: "Кто из указанных имеет право на тайну переписки:",
+    options: [
+      { hy: "միայն ՀՀ քաղաքացին", ru: "только гражданин РА" },
+      { hy: "յուրաքանչյուր ոք", ru: "каждый" },
+      { hy: "ոչ ոք", ru: "никто" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Նշվածներից ո՞վ ունի կրթության իրավունք՝",
+    ru: "Кто из указанных имеет право на образование:",
+    options: [
+      { hy: "յուրաքանչյուր ոք", ru: "каждый" },
+      { hy: "միայն ՀՀ քաղաքացին", ru: "только гражданин РА" },
+      { hy: "միայն լավ սովորողը", ru: "только хорошо учащийся" }
+    ],
+    correct: 0
+  },
+  {
+    hy: "Նշվածներից ո՞վ ունի Հայաստանի Հանրապետությունից դուրս գալու իրավունք՝",
+    ru: "Кто из указанных имеет право выезда из Республики Армения:",
+    options: [
+      { hy: "յուրաքանչյուր ոք", ru: "каждый" },
+      { hy: "միայն ՀՀ քաղաքացին", ru: "только гражданин РА" },
+      { hy: "ոչ ոք", ru: "никто" }
+    ],
+    correct: 0
+  },
+  {
+    hy: "Նշվածներից ո՞վ ունի իրավաբանական օգնություն ստանալու իրավունք՝",
+    ru: "Кто из указанных имеет право на получение юридической помощи:",
+    options: [
+      { hy: "միայն ՀՀ քաղաքացին", ru: "только гражданин РА" },
+      { hy: "յուրաքանչյուր ոք", ru: "каждый" },
+      { hy: "ոչ ոք", ru: "никто" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "ՀՀ Ազգային ժողովի ընտրությանը և հանրաքվեին մասնակցելու իրավունք ունեն՝",
+    ru: "Право участвовать в выборах НС РА и референдуме имеют:",
+    options: [
+      { hy: "յուրաքանչյուր ոք", ru: "каждый" },
+      { hy: "ընտրության կամ հանրաքվեի օրը տասնութ տարին լրացած օտարերկրացիները", ru: "иностранцы, достигшие 18 лет ко дню голосования" },
+      { hy: "ընտրության կամ հանրաքվեի օրը տասնութ տարին լրացած ՀՀ քաղաքացիները", ru: "граждане РА, достигшие 18 лет ко дню голосования" }
+    ],
+    correct: 2
+  },
+  {
+    hy: "Նշվածներից ո՞վ ունի մասնավոր և ընտանեկան կյանքի անձեռնմխելիության իրավունք՝",
+    ru: "Кто имеет право на неприкосновенность частной и семейной жизни:",
+    options: [
+      { hy: "միայն ՀՀ քաղաքացին", ru: "только гражданин РА" },
+      { hy: "յուրաքանչյուր ոք", ru: "каждый" },
+      { hy: "ոչ ոք", ru: "никто" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Նշվածներից ո՞վ ունի բնակարանի անձեռնմխելիության իրավունք՝",
+    ru: "Кто имеет право на неприкосновенность жилища:",
+    options: [
+      { hy: "միայն ՀՀ քաղաքացին", ru: "только гражданин РА" },
+      { hy: "յուրաքանչյուր ոք", ru: "каждый" },
+      { hy: "ոչ ոք", ru: "никто" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Նշվածներից ո՞վ ունի մտքի ազատության իրավունք՝",
+    ru: "Кто имеет право на свободу мысли:",
+    options: [
+      { hy: "միայն ՀՀ քաղաքացին", ru: "только гражданин РА" },
+      { hy: "յուրաքանչյուր ոք", ru: "каждый" },
+      { hy: "ոչ ոք", ru: "никто" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Մտավոր սեփականությունը պաշտպանվում է՝",
+    ru: "Интеллектуальная собственность охраняется:",
+    options: [
+      { hy: "ազգային անվտանգության մարմնի որոշմամբ", ru: "решением органа национальной безопасности" },
+      { hy: "օրենքով", ru: "законом" },
+      { hy: "կուսակցությունների որոշումներով", ru: "решениями партий" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Նշվածներից ո՞վ է պարտավոր օրենքով սահմանված կարգով մասնակցել ՀՀ պաշտպանությանը՝",
+    ru: "Кто обязан в установленном законом порядке участвовать в защите РА:",
+    options: [
+      { hy: "ՀՀ քաղաքացին", ru: "гражданин РА" },
+      { hy: "յուրաքանչյուր ոք", ru: "каждый" },
+      { hy: "ոչ ոք", ru: "никто" }
+    ],
+    correct: 0
+  },
+  {
+    hy: "ՀՀ կառավարությունը կազմված է՝",
+    ru: "Правительство РА состоит из:",
+    options: [
+      { hy: "ՀՀ վարչապետից, ՀՀ փոխվարչապետերից և ՀՀ նախարարներից", ru: "Премьер-министра, вице-премьеров и министров РА" },
+      { hy: "ՀՀ վարչապետից, ՀՀ նախարարներից", ru: "Премьер-министра и министров РА" },
+      { hy: "ՀՀ վարչապետից և ՀՀ մարզպետներից", ru: "Премьер-министра и марзпетов РА" }
+    ],
+    correct: 0
+  },
+  {
+    hy: "Ի՞նչ կարգով են Հայաստանի Հանրապետության քաղաքացիություն ձեռք բերում ազգությամբ հայերը՝",
+    ru: "В каком порядке армяне по национальности приобретают гражданство РА:",
+    options: [
+      { hy: "պարզեցված", ru: "в упрощённом порядке" },
+      { hy: "ընդհանուր", ru: "в общем порядке" },
+      { hy: "առանց որևէ կարգի", ru: "без какого-либо порядка" }
+    ],
+    correct: 0
+  },
+  {
+    hy: "Ո՞վ է հրավիրում և վարում ՀՀ կառավարության նիստերը՝",
+    ru: "Кто созывает и ведёт заседания Правительства РА:",
+    options: [
+      { hy: "ՀՀ Ազգային ժողովի նախագահը", ru: "Председатель Национального Собрания РА" },
+      { hy: "ՀՀ վճռաբեկ դատարանի նախագահը", ru: "Председатель Кассационного суда РА" },
+      { hy: "ՀՀ վարչապետը", ru: "Премьер-министр РА" }
+    ],
+    correct: 2
+  },
+  {
+    hy: "Հայաստանի Հանրապետության Սահմանադրությունն ընդունվում է՝",
+    ru: "Конституция Республики Армения принимается:",
+    options: [
+      { hy: "ՀՀ կառավարության կողմից", ru: "Правительством РА" },
+      { hy: "ՀՀ սահմանադրական դատարանի կողմից", ru: "Конституционным Судом РА" },
+      { hy: "հանրաքվեի միջոցով", ru: "посредством референдума" }
+    ],
+    correct: 2
+  },
+  {
+    hy: "Ու՞մ կողմից է ընտրվում Հանրապետության նախագահը՝",
+    ru: "Кем избирается Президент Республики:",
+    options: [
+      { hy: "ժողովրդի", ru: "народом" },
+      { hy: "ՀՀ Ազգային ժողովի", ru: "Национальным Собранием РА" },
+      { hy: "ՀՀ կառավարության", ru: "Правительством РА" }
+    ],
+    correct: 1
+  },
+  {
+    hy: "Ո՞վ իրավունք ունի առաջադրելու Հանրապետության նախագահի թեկնածու՝",
+    ru: "Кто имеет право выдвигать кандидата в Президенты Республики:",
+    options: [
+      { hy: "պատգամավորների ընդհանուր թվի առնվազն մեկ քառորդը", ru: "не менее одной четвёртой от общего числа депутатов" },
+      { hy: "ՀՀ վարչապետը", ru: "Премьер-министр РА" },
+      { hy: "ՀՀ Ազգային ժողովի նախագահը", ru: "Председатель Национального Собрания РА" }
+    ],
+    correct: 0
+  },
+  {
+    hy: "Ո՞վ է ընտրում վարչապետին՝",
+    ru: "Кто избирает Премьер-министра:",
+    options: [
+      { hy: "ժողովուրդը", ru: "народ" },
+      { hy: "ՀՀ մարզպետները և ՀՀ նախարարները", ru: "марзпеты и министры РА" },
+      { hy: "ՀՀ Ազգային ժողովը", ru: "Национальное Собрание РА" }
+    ],
+    correct: 2
+  }
+];
+
+const state = {
+  answers: new Array(QUESTIONS.length).fill(null),
+  score: 0,
+  answered: 0
+};
+
+const quizEl = document.getElementById('quiz');
+const scoreEl = document.getElementById('score');
+const counterEl = document.getElementById('counter');
+const progressFill = document.getElementById('progressFill');
+const resetBtn = document.getElementById('resetBtn');
+
+function render() {
+  quizEl.innerHTML = '';
+  QUESTIONS.forEach((q, qi) => {
+    const card = document.createElement('div');
+    card.className = 'question';
+    card.id = `q${qi}`;
+
+    const num = document.createElement('div');
+    num.className = 'q-num';
+    num.textContent = `Հարց ${qi + 1} / Вопрос ${qi + 1}`;
+    card.appendChild(num);
+
+    const hy = document.createElement('div');
+    hy.className = 'q-hy';
+    hy.textContent = q.hy;
+    card.appendChild(hy);
+
+    const ru = document.createElement('div');
+    ru.className = 'q-ru';
+    ru.textContent = q.ru;
+    card.appendChild(ru);
+
+    const opts = document.createElement('div');
+    opts.className = 'options';
+
+    const userAnswer = state.answers[qi];
+
+    q.options.forEach((opt, oi) => {
+      const btn = document.createElement('button');
+      btn.className = 'option';
+      btn.type = 'button';
+
+      const hySpan = document.createElement('span');
+      hySpan.className = 'opt-hy';
+      hySpan.textContent = `${oi + 1}) ${opt.hy}`;
+      btn.appendChild(hySpan);
+
+      const ruSpan = document.createElement('span');
+      ruSpan.className = 'opt-ru';
+      ruSpan.textContent = opt.ru;
+      btn.appendChild(ruSpan);
+
+      if (userAnswer !== null) {
+        btn.disabled = true;
+        if (oi === q.correct) {
+          btn.classList.add('correct');
+        } else if (oi === userAnswer) {
+          btn.classList.add('wrong');
+        } else {
+          btn.classList.add('muted');
+        }
+      }
+
+      btn.addEventListener('click', () => answer(qi, oi));
+      opts.appendChild(btn);
+    });
+
+    card.appendChild(opts);
+
+    if (userAnswer !== null) {
+      const fb = document.createElement('div');
+      fb.className = 'feedback show ' + (userAnswer === q.correct ? 'ok' : 'err');
+      fb.textContent = userAnswer === q.correct
+        ? 'Ճիշտ է / Правильно'
+        : `Սխալ / Неправильно. Ճիշտ պատասխան՝ ${q.correct + 1}) ${q.options[q.correct].hy}`;
+      card.appendChild(fb);
+    }
+
+    quizEl.appendChild(card);
+  });
+
+  updateProgress();
+}
+
+function answer(qi, oi) {
+  if (state.answers[qi] !== null) return;
+  state.answers[qi] = oi;
+  if (oi === QUESTIONS[qi].correct) state.score++;
+  state.answered++;
+  render();
+
+  if (state.answered === QUESTIONS.length) {
+    showSummary();
+  } else {
+    const next = document.getElementById(`q${qi + 1}`);
+    if (next) {
+      setTimeout(() => next.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+    }
+  }
+}
+
+function updateProgress() {
+  scoreEl.textContent = `${state.score} / ${state.answered}`;
+  counterEl.textContent = `${state.answered} / ${QUESTIONS.length}`;
+  progressFill.style.width = `${(state.answered / QUESTIONS.length) * 100}%`;
+}
+
+function showSummary() {
+  const existing = document.getElementById('summary');
+  if (existing) existing.remove();
+  const div = document.createElement('div');
+  div.className = 'summary';
+  div.id = 'summary';
+  const passed = state.score >= 17;
+  div.innerHTML = `
+    <h2>Արդյունք / Результат</h2>
+    <div class="result">${state.score} / ${QUESTIONS.length}</div>
+    <div class="${passed ? 'pass' : 'fail'}">
+      ${passed
+        ? '✓ Անցել եք թեստը / Тест пройден'
+        : '✗ Չեք անցել թեստը / Тест не пройден'}
+    </div>
+    <div class="note">Անցողիկ շեմը՝ կեսից ավելի (17 և ավելի)<br/>Проходной балл — больше половины (17 и более)</div>
+  `;
+  quizEl.appendChild(div);
+  setTimeout(() => div.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+}
+
+resetBtn.addEventListener('click', () => {
+  if (state.answered === 0 || confirm('Սկսել նորից? / Начать заново?')) {
+    state.answers = new Array(QUESTIONS.length).fill(null);
+    state.score = 0;
+    state.answered = 0;
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});
+
+render();
+</script>
+</body>
+</html>
