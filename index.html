@@ -66,6 +66,39 @@
   .score {
     font-variant-numeric: tabular-nums;
   }
+  .mode-toggle {
+    display: flex;
+    gap: 4px;
+    margin-top: 12px;
+    background: #ececec;
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .mode-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #777;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s ease, color 0.15s ease;
+    line-height: 1.2;
+  }
+  .mode-btn.active {
+    background: #ffffff;
+    color: #1a1a1a;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  body.test-mode .q-ru,
+  body.test-mode .opt-ru,
+  body.test-mode .ru-only {
+    display: none !important;
+  }
   .question {
     background: #ffffff;
     border: 1px solid #ececec;
@@ -237,7 +270,11 @@
 <div class="container">
   <header>
     <h1>ՀՀ Սահմանադրության թեստ</h1>
-    <div class="subtitle">Тест по Конституции Республики Армения</div>
+    <div class="subtitle ru-only">Тест по Конституции Республики Армения</div>
+    <div class="mode-toggle" role="tablist" aria-label="Режим / Ռեժիմ">
+      <button type="button" class="mode-btn active" data-mode="learn" role="tab" aria-selected="true">Ուսուցում<span class="ru-only"> · Обучение</span></button>
+      <button type="button" class="mode-btn" data-mode="test" role="tab" aria-selected="false">Թեստ<span class="ru-only"> · Самопроверка</span></button>
+    </div>
     <div class="progress">
       <span class="score" id="score">0 / 0</span>
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
@@ -248,11 +285,11 @@
   <main id="quiz"></main>
 
   <div class="controls">
-    <button class="action secondary" id="resetBtn">Սկսել նորից / Заново</button>
+    <button class="action secondary" id="resetBtn">Սկսել նորից<span class="ru-only"> · Заново</span></button>
   </div>
 
   <footer>
-    33 հարց · անցողիկ՝ 17+ · 33 вопроса · проходной — 17+
+    33 հարց · անցողիկ՝ 17+<span class="ru-only"> · 33 вопроса · проходной — 17+</span>
   </footer>
 </div>
 
@@ -590,6 +627,15 @@ const ORIGINAL_QUESTIONS = [
   }
 ];
 
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function shuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -622,7 +668,7 @@ function render() {
 
     const num = document.createElement('div');
     num.className = 'q-num';
-    num.textContent = `Հարց ${qi + 1} / Вопрос ${qi + 1}`;
+    num.innerHTML = `Հարց ${qi + 1}<span class="ru-only"> · Вопрос ${qi + 1}</span>`;
     card.appendChild(num);
 
     const hy = document.createElement('div');
@@ -674,10 +720,12 @@ function render() {
 
     if (userAnswer !== null) {
       const fb = document.createElement('div');
-      fb.className = 'feedback show ' + (userAnswer === q.correct ? 'ok' : 'err');
-      fb.textContent = userAnswer === q.correct
-        ? 'Ճիշտ է / Правильно'
-        : `Սխալ / Неправильно. Ճիշտ պատասխան՝ ${q.correct + 1}) ${q.options[q.correct].hy}`;
+      const ok = userAnswer === q.correct;
+      fb.className = 'feedback show ' + (ok ? 'ok' : 'err');
+      const correctText = `${q.correct + 1}) ${q.options[q.correct].hy}`;
+      fb.innerHTML = ok
+        ? `Ճիշտ է<span class="ru-only"> · Правильно</span>`
+        : `Սխալ<span class="ru-only"> · Неправильно</span>. Ճիշտ պատասխան՝ ${escapeHtml(correctText)}`;
       card.appendChild(fb);
     }
 
@@ -727,14 +775,14 @@ function showSummary() {
   div.id = 'summary';
   const passed = state.score >= 17;
   div.innerHTML = `
-    <h2>Արդյունք / Результат</h2>
+    <h2>Արդյունք<span class="ru-only"> · Результат</span></h2>
     <div class="result">${state.score} / ${questions.length}</div>
     <div class="${passed ? 'pass' : 'fail'}">
       ${passed
-        ? '✓ Անցել եք թեստը / Тест пройден'
-        : '✗ Չեք անցել թեստը / Тест не пройден'}
+        ? '✓ Անցել եք թեստը<span class="ru-only"> · Тест пройден</span>'
+        : '✗ Չեք անցել թեստը<span class="ru-only"> · Тест не пройден</span>'}
     </div>
-    <div class="note">Անցողիկ շեմը՝ կեսից ավելի (17 և ավելի)<br/>Проходной балл — больше половины (17 и более)</div>
+    <div class="note">Անցողիկ շեմը՝ կեսից ավելի (17 և ավելի)<span class="ru-only"><br/>Проходной балл — больше половины (17 и более)</span></div>
   `;
   quizEl.appendChild(div);
   setTimeout(() => div.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
@@ -750,6 +798,32 @@ resetBtn.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 });
+
+// Mode toggle: "learn" shows Armenian + Russian, "test" shows Armenian only.
+const MODE_KEY = 'arm-test-mode';
+const modeButtons = document.querySelectorAll('.mode-btn');
+
+function applyMode(mode) {
+  if (mode === 'test') {
+    document.body.classList.add('test-mode');
+  } else {
+    document.body.classList.remove('test-mode');
+  }
+  modeButtons.forEach(b => {
+    const active = b.dataset.mode === mode;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  try { localStorage.setItem(MODE_KEY, mode); } catch (e) {}
+}
+
+modeButtons.forEach(b => {
+  b.addEventListener('click', () => applyMode(b.dataset.mode));
+});
+
+let savedMode = 'learn';
+try { savedMode = localStorage.getItem(MODE_KEY) || 'learn'; } catch (e) {}
+applyMode(savedMode);
 
 render();
 </script>
