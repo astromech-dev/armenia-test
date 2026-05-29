@@ -22,14 +22,20 @@
     padding: 16px;
   }
   header {
-    padding: 8px 0 16px;
-    border-bottom: 1px solid #ececec;
-    margin-bottom: 16px;
+    padding: 4px 0 12px;
+    margin-bottom: 12px;
+  }
+  .sticky-controls {
     position: sticky;
     top: 0;
-    background: #fafafa;
     z-index: 10;
+    background: #fafafa;
+    padding: 10px 0 12px;
+    border-bottom: 1px solid #ececec;
+    margin-bottom: 16px;
   }
+  .sticky-controls .mode-toggle { margin-top: 0; }
+  .sticky-controls .progress { margin-top: 10px; }
   h1 {
     font-size: 16px;
     font-weight: 600;
@@ -105,7 +111,7 @@
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 16px;
-    scroll-margin-top: 160px;
+    scroll-margin-top: 130px;
   }
   .q-head {
     display: flex;
@@ -482,9 +488,7 @@
     line-height: 1;
     flex-shrink: 0;
   }
-  .static-progress {
-    margin-bottom: 16px;
-  }
+
   h1 {
     font-size: 17px;
     font-weight: 600;
@@ -508,10 +512,6 @@
 <div class="container">
   <header>
     <h1>Тест по Конституции Республики Армения <span style="color:#999;font-weight:500;">(arlis.am)</span></h1>
-    <div class="mode-toggle" role="tablist" aria-label="Режим">
-      <button type="button" class="mode-btn active" data-mode="learn" role="tab" aria-selected="true">Обучение</button>
-      <button type="button" class="mode-btn" data-mode="test" role="tab" aria-selected="false">Самопроверка</button>
-    </div>
   </header>
 
   <div class="section-intro">
@@ -527,10 +527,16 @@
   </a>
 
 
-  <div class="progress static-progress">
+  <div class="sticky-controls">
+    <div class="mode-toggle" role="tablist" aria-label="Режим">
+      <button type="button" class="mode-btn active" data-mode="learn" role="tab" aria-selected="true">Обучение</button>
+      <button type="button" class="mode-btn" data-mode="test" role="tab" aria-selected="false">Самопроверка</button>
+    </div>
+    <div class="progress">
     <span class="score" id="score">0 / 0</span>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     <span class="score" id="counter">0 / 33</span>
+  </div>
   </div>
 
   <main id="quiz"></main>
@@ -1213,8 +1219,8 @@ function answer(qi, oi) {
 function scrollToQuestion(idx) {
   const el = document.getElementById(`q${idx}`);
   if (!el) return;
-  const header = document.querySelector('header');
-  const headerHeight = header ? header.getBoundingClientRect().height : 0;
+  const sticky = document.querySelector('.sticky-controls');
+  const headerHeight = sticky ? sticky.getBoundingClientRect().height : 0;
   // Extra buffer so the question NUMBER and TEXT are clearly visible below the sticky header,
   // not just the answer options.
   const buffer = 32;
