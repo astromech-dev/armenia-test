@@ -333,7 +333,7 @@ function pluralVoprosy(n) {
 }
 
 function fillFooter() {
-  const footer = document.getElementById('footer');
+  const footer = document.getElementById('footerCounts');
   if (!footer) return;
   const total = ORIGINAL_QUESTIONS.length;
   const word = pluralVoprosy(total);
@@ -346,4 +346,26 @@ function fillFooter() {
   }
 }
 fillFooter();
+
+// Дата последнего обновления (из общего конфига config.js).
+function fillLastUpdated() {
+  const el = document.getElementById('lastUpdated');
+  if (el && typeof LAST_UPDATED !== 'undefined') el.textContent = LAST_UPDATED;
+}
+fillLastUpdated();
+
+// Число вопросов в промо-кнопке перехода на ДРУГОЙ тест.
+// Данные другого теста на этой странице не загружены, поэтому счётчик берётся
+// из общего конфига TEST_COUNTS (config.js) по ключу data-count.
+function fillTransitionCount() {
+  const btn = document.querySelector('.transition-btn[data-count]');
+  if (!btn || typeof TEST_COUNTS === 'undefined') return;
+  const n = TEST_COUNTS[btn.getAttribute('data-count')];
+  if (n == null) return;
+  const countEl = btn.querySelector('.tb-count');
+  const wordEl = btn.querySelector('.tb-word');
+  if (countEl) countEl.textContent = n;
+  if (wordEl) wordEl.textContent = pluralVoprosy(n);
+}
+fillTransitionCount();
 

@@ -16,20 +16,27 @@
   </div>
 </div>
 <div class="container">
+  <nav class="top-nav">
+    <a class="lang-link" href="https://astromech-dev.github.io/armenian-language/" target="_blank" rel="noopener">
+      Учим армянский язык<span class="lang-beta">beta</span><span class="lang-arrow">→</span>
+    </a>
+  </nav>
+
   <header>
-    <h1>Расширенный тест</h1>
+    <h1>Тест для подготовки</h1>
   </header>
 
   <div class="section-intro">
-    <p class="test-mode-only"><strong>33 случайных вопроса из расширенного теста.</strong></p>
-    <p>Вопросы с тегом <span class="tag-ref tag-official">Պաշտոնական · Официальный</span> — из официального источника (<a href="https://arlis.am/hy/acts/122105" target="_blank" rel="noopener">arlis.am</a>, постановление № 1040-Н). Вопросы с тегом <span class="tag-ref tag-generated">Գեներացված · Сгенерирован</span> — сгенерированы на основе Конституции.</p>
+    <p class="test-mode-only"><strong>33 случайных вопроса из теста для подготовки.</strong></p>
+    <p>Вопросы с тегом <span class="tag-ref tag-official">Պաշտոնական · Официальный</span> — из официального источника (<a href="https://arlis.am/hy/acts/122105" target="_blank" rel="noopener">arlis.am</a>, постановление № 1040-Н). Вопросы с тегом <span class="tag-ref tag-generated">Գեներացված · Сгенерирован</span> — составлены на основе текста Конституции РА для дополнительной практики.</p>
+    <p class="disclaimer">Это неофициальный учебный тренажёр для самостоятельной подготовки. При подготовке опирайтесь также на официальные источники: постановление № 1040-Н (<a href="https://arlis.am/hy/acts/122105" target="_blank" rel="noopener">arlis.am</a>) и Конституцию РА (<a href="https://www.president.am/hy/constitution-2015/" target="_blank" rel="noopener">president.am</a>).</p>
   </div>
 
-  <a class="transition-btn" href="./">
+  <a class="transition-btn" href="./" data-count="official">
     <span class="btn-arrow">←</span>
     <span class="btn-text">
-      <strong>Тест по Конституции Республики Армения</strong>
-      <span class="btn-hint">arlis.am, постановление № 1040-Н</span>
+      <strong>Тест на знание Конституции Республики Армения (arlis.am)</strong>
+      <span class="btn-hint"><span class="tb-count">…</span> <span class="tb-word">вопросов</span> · постановление № 1040-Н</span>
     </span>
   </a>
 
@@ -52,13 +59,15 @@
     <button class="action secondary" id="resetBtn">Заново</button>
   </div>
 
-  <footer id="footer">
-    175 вопросов · в режиме теста — 33 случайных, проходной 17 из 33
+  <footer>
+    <div id="footerCounts"></div>
+    <div class="footer-updated">Последнее обновление: <span id="lastUpdated"></span></div>
   </footer>
 </div>
 
 <script src="articles.js"></script>
 <script src="questions-full.js"></script>
+<script src="config.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
