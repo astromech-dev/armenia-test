@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#ffffff" />
+<title>Թեստ ՀՀ Սահմանադրության / Тест по Конституции РА</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="loader-overlay" id="loader" aria-hidden="true">
+  <div class="spinner"></div>
+  <div class="loader-text">
+    Собираем вопросы…
+  </div>
+</div>
+<div class="container">
+  <header>
+    <h1>Расширенный тест</h1>
+  </header>
+
+  <div class="section-intro">
+    <p class="test-mode-only"><strong>33 случайных вопроса из расширенного теста.</strong></p>
+    <p>Вопросы с тегом <span class="tag-ref tag-official">Պաշտոնական · Официальный</span> — из официального источника (<a href="https://arlis.am/hy/acts/122105" target="_blank" rel="noopener">arlis.am</a>, постановление № 1040-Н). Вопросы с тегом <span class="tag-ref tag-generated">Գեներացված · Сгенерирован</span> — сгенерированы на основе Конституции.</p>
+  </div>
+
+  <a class="transition-btn" href="./">
+    <span class="btn-arrow">←</span>
+    <span class="btn-text">
+      <strong>Тест по Конституции Республики Армения</strong>
+      <span class="btn-hint">arlis.am, постановление № 1040-Н</span>
+    </span>
+  </a>
+
+
+  <div class="sticky-controls">
+    <div class="mode-toggle" role="tablist" aria-label="Режим">
+      <button type="button" class="mode-btn active" data-mode="learn" role="tab" aria-selected="true">Обучение</button>
+      <button type="button" class="mode-btn" data-mode="test" role="tab" aria-selected="false">Самопроверка</button>
+    </div>
+    <div class="progress">
+    <span class="score" id="score">0 / 0</span>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="score" id="counter">0 / 33</span>
+  </div>
+  </div>
+
+  <main id="quiz"></main>
+
+  <div class="controls">
+    <button class="action secondary" id="resetBtn">Заново</button>
+  </div>
+
+  <footer id="footer">
+    175 вопросов · в режиме теста — 33 случайных, проходной 17 из 33
+  </footer>
+</div>
+
+<script src="articles.js"></script>
+<script src="questions-full.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

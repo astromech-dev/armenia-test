@@ -1,0 +1,64 @@
+
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#ffffff" />
+<title>Թեստ ՀՀ Սահմանադրության / Тест по Конституции РА</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="loader-overlay" id="loader" aria-hidden="true">
+  <div class="spinner"></div>
+  <div class="loader-text">
+    Собираем вопросы…
+  </div>
+</div>
+<div class="container">
+  <header>
+    <h1>Тест по Конституции Республики Армения <span style="color:#999;font-weight:500;">(arlis.am)</span></h1>
+  </header>
+
+  <div class="section-intro">
+    <p>Вопросы из официального источника (<a href="https://arlis.am/hy/acts/122105" target="_blank" rel="noopener">arlis.am</a>, постановление № 1040-Н). Расширенный список вопросов — в полной версии теста.</p>
+  </div>
+
+  <a class="transition-btn" href="./full.html">
+    <span class="btn-text">
+      <strong>Расширенный тест — 175 вопросов</strong>
+      <span class="btn-hint">С сайта arlis.am + сгенерированные по статьям Конституции</span>
+    </span>
+    <span class="btn-arrow">→</span>
+  </a>
+
+
+  <div class="sticky-controls">
+    <div class="mode-toggle" role="tablist" aria-label="Режим">
+      <button type="button" class="mode-btn active" data-mode="learn" role="tab" aria-selected="true">Обучение</button>
+      <button type="button" class="mode-btn" data-mode="test" role="tab" aria-selected="false">Самопроверка</button>
+    </div>
+    <div class="progress">
+    <span class="score" id="score">0 / 0</span>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="score" id="counter">0 / 33</span>
+  </div>
+  </div>
+
+  <main id="quiz"></main>
+
+  <div class="controls">
+    <button class="action secondary" id="resetBtn">Заново</button>
+  </div>
+
+  <footer id="footer">
+    33 вопроса · проходной балл — 17 и более
+  </footer>
+</div>
+
+<script src="articles.js"></script>
+<script src="questions-official.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
