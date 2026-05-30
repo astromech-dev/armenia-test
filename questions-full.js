@@ -58,7 +58,7 @@ const ORIGINAL_QUESTIONS = [
     ],
     correct: 2,
     source: "official",
-    article: "14"
+    article: "21"
   },
   {
     hy: "Հայաստանի Հանրապետության մայրաքաղաքը՝",
@@ -70,7 +70,7 @@ const ORIGINAL_QUESTIONS = [
     ],
     correct: 1,
     source: "official",
-    article: "13"
+    article: "22"
   },
   {
     hy: "Ո՞վ է նշանակում նախարարին՝",
@@ -154,7 +154,7 @@ const ORIGINAL_QUESTIONS = [
     ],
     correct: 2,
     source: "official",
-    article: "9"
+    article: "121"
   },
   {
     hy: "Ո՞վ է իրականացնում Հայաստանի Հանրապետությունում ներքին քաղաքականությունը՝",
@@ -178,7 +178,7 @@ const ORIGINAL_QUESTIONS = [
     ],
     correct: 2,
     source: "official",
-    article: "119"
+    article: "118"
   },
   {
     hy: "Նշվածներից ո՞վ ունի անձնական ազատության իրավունք՝",
