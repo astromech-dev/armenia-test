@@ -35,9 +35,10 @@ function newState(length) {
   };
 }
 
-// Learning mode = all questions, shuffled once per init / reset.
+// Learning mode = all questions in fixed source order (не перетасовывается,
+// чтобы порядок не менялся при обновлении страницы).
 // Test mode = random 33 picked from the full pool.
-function buildLearnQuestions() { return shuffle(ORIGINAL_QUESTIONS); }
+function buildLearnQuestions() { return ORIGINAL_QUESTIONS.slice(); }
 function buildTestQuestions() { return shuffle(ORIGINAL_QUESTIONS).slice(0, TEST_QUESTION_COUNT); }
 
 const modeData = {
