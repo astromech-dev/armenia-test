@@ -319,6 +319,27 @@ modeButtons.forEach(b => {
   b.addEventListener('click', () => applyMode(b.dataset.mode));
 });
 
+// --- Переключатель русского перевода (работает в режиме «Обучение»;
+// в «Самопроверке» перевод скрыт всегда правилами body.test-mode). ---
+const RU_KEY = 'arm-test-ru';
+const ruBtn = document.getElementById('ruBtn');
+
+function applyRu(show) {
+  document.body.classList.toggle('no-ru', !show);
+  if (ruBtn) ruBtn.setAttribute('aria-pressed', show ? 'true' : 'false');
+  try { localStorage.setItem(RU_KEY, show ? '1' : '0'); } catch (e) {}
+}
+
+let savedRu = true;
+try { savedRu = localStorage.getItem(RU_KEY) !== '0'; } catch (e) {}
+applyRu(savedRu);
+
+if (ruBtn) {
+  ruBtn.addEventListener('click', () => {
+    applyRu(ruBtn.getAttribute('aria-pressed') !== 'true');
+  });
+}
+
 let savedMode = 'learn';
 try { savedMode = localStorage.getItem(MODE_KEY) || 'learn'; } catch (e) {}
 // Initial mode set without loader — page already feels like a fresh load.

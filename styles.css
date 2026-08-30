@@ -125,9 +125,55 @@
     color: #1a1a1a;
     box-shadow: 0 1px 2px rgba(0,0,0,0.06);
   }
+  /* Переключатель русского перевода (только в режиме «Обучение»). */
+  .ru-toggle {
+    margin-top: 10px;
+  }
+  body.test-mode .ru-toggle { display: none; }
+  .ru-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    padding: 2px 0;
+    font-family: inherit;
+    font-size: 13px;
+    color: #777;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s ease;
+  }
+  .ru-btn[aria-pressed="true"] { color: #1a1a1a; }
+  .ru-switch {
+    position: relative;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 18px;
+    background: #dcdcdc;
+    border-radius: 9px;
+    transition: background 0.15s ease;
+  }
+  .ru-btn[aria-pressed="true"] .ru-switch { background: #1a1a1a; }
+  .ru-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    transition: transform 0.15s ease;
+  }
+  .ru-btn[aria-pressed="true"] .ru-knob { transform: translateX(12px); }
+  /* Скрытие перевода: в режиме теста — всегда, в обучении — по переключателю. */
   body.test-mode .q-ru,
   body.test-mode .opt-ru,
-  body.test-mode .ru-only {
+  body.test-mode .ru-only,
+  body.no-ru .q-ru,
+  body.no-ru .opt-ru,
+  body.no-ru .ru-only {
     display: none !important;
   }
   .question {
