@@ -33,7 +33,6 @@ const TEST_QUESTION_COUNT = 33;
 const TEST_ID = (document.body.dataset && document.body.dataset.test) || 'official';
 const LS_ANSWERS = 'arm-' + TEST_ID + '-answers';
 const LS_MARKS   = 'arm-' + TEST_ID + '-marks';
-const LS_FILTER  = 'arm-' + TEST_ID + '-filter';
 
 // Ключ вопроса — хеш армянского текста (FNV-1a, base36). По индексу в массиве
 // хранить нельзя: добавление или перестановка вопроса сдвинула бы весь прогресс.
@@ -75,13 +74,8 @@ const marksStore = new Set(
   (loadJSON(LS_MARKS, []) || []).filter(function (k) { return KNOWN_KEYS.has(k); })
 );
 
-// 'all' — весь банк, 'repeat' — только отмеченные «на повторение».
-let learnFilter = loadJSON(LS_FILTER, 'all') === 'repeat' ? 'repeat' : 'all';
-if (learnFilter === 'repeat' && marksStore.size === 0) learnFilter = 'all';
-
 function saveAnswers() { saveJSON(LS_ANSWERS, answersStore); }
 function saveMarks()   { saveJSON(LS_MARKS, Array.from(marksStore)); }
-function saveFilter()  { saveJSON(LS_FILTER, learnFilter); }
 
 function newState(length) {
   return {
@@ -94,11 +88,10 @@ function newState(length) {
 // Learning mode = all questions in fixed source order (не перетасовывается,
 // чтобы порядок не менялся при обновлении страницы).
 // Test mode = random 33 picked from the full pool.
-function buildLearnQuestions() {
-  if (learnFilter === 'repeat') {
-    return ORIGINAL_QUESTIONS.filter(function (q) { return marksStore.has(keyOf(q)); });
-  }
-  return ORIGINAL_QUESTIONS.slice();
+function buildLearnQuestions() { return ORIGINAL_QUESTIONS.slice(); }
+// Список повторения — те же вопросы в том же порядке, только отмеченные.
+function buildRepeatQuestions() {
+  return ORIGINAL_QUESTIONS.filter(function (q) { return marksStore.has(keyOf(q)); });
 }
 function buildTestQuestions() { return shuffle(ORIGINAL_QUESTIONS).slice(0, TEST_QUESTION_COUNT); }
 
@@ -116,11 +109,17 @@ function stateFromStore(qs) {
 }
 
 const modeData = {
-  learn: { questions: buildLearnQuestions(), state: null },
-  test:  { questions: buildTestQuestions(),  state: null }
+  learn:  { questions: buildLearnQuestions(),  state: null },
+  repeat: { questions: buildRepeatQuestions(), state: null },
+  test:   { questions: buildTestQuestions(),   state: null }
 };
-modeData.learn.state = stateFromStore(modeData.learn.questions);
-modeData.test.state  = newState(modeData.test.questions.length);
+modeData.learn.state  = stateFromStore(modeData.learn.questions);
+modeData.repeat.state = stateFromStore(modeData.repeat.questions);
+modeData.test.state   = newState(modeData.test.questions.length);
+
+// «Обучение» и «Повторить» — учебные режимы: общий прогресс, перевод,
+// метки и блок статьи. Отличаются только тем, какие вопросы показаны.
+function isStudyMode() { return currentMode === 'learn' || currentMode === 'repeat'; }
 
 let currentMode = 'learn';
 let questions = modeData[currentMode].questions;
@@ -138,9 +137,10 @@ function render() {
   if (questions.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
-    empty.innerHTML = 'Список на повторение пуст.<br>' +
-      'Отмечайте вопросы кнопкой <span class="es-pill">Повторить</span> — ' +
-      'сюда же автоматически попадают те, где вы ошиблись.';
+    empty.innerHTML = 'Здесь пока пусто.<br>' +
+      'В режиме «Обучение» под каждым вопросом есть кнопка ' +
+      '<span class="es-pill">🔖 Добавить в повторение</span> — отмечайте ей всё, ' +
+      'что хочется повторить. Вопросы с неверным ответом попадают сюда сами.';
     quizEl.appendChild(empty);
     updateProgress();
     return;
@@ -172,11 +172,6 @@ function render() {
         ? 'Из постановления № 1040-Н (arlis.am)'
         : 'Сгенерирован по примеру / банку экзамена';
       head.appendChild(badge);
-    }
-
-    // Метка «на повторение» — только в обучении: там она и ставится, и читается.
-    if (currentMode === 'learn') {
-      head.appendChild(makeMarkButton(q));
     }
 
     card.appendChild(head);
@@ -239,7 +234,7 @@ function render() {
       card.appendChild(fb);
     }
 
-    if (currentMode === 'learn' && q.article && ARTICLES[q.article]) {
+    if (isStudyMode() && q.article && ARTICLES[q.article]) {
       const det = document.createElement('details');
       det.className = 'article-info';
       const sum = document.createElement('summary');
@@ -260,6 +255,8 @@ function render() {
       card.appendChild(det);
     }
 
+    if (isStudyMode()) card.appendChild(makeMarkButton(q));
+
     quizEl.appendChild(card);
   });
 
@@ -275,8 +272,8 @@ function answer(qi, oi) {
   if (ok) state.score++;
   state.answered++;
 
-  // Прогресс сохраняется только в обучении: «Самопроверка» — разовая попытка.
-  if (currentMode === 'learn') {
+  // Прогресс сохраняется в учебных режимах; «Самопроверка» — разовая попытка.
+  if (isStudyMode()) {
     answersStore[keyOf(q)] = oi;
     saveAnswers();
     if (!ok && !marksStore.has(keyOf(q))) {
@@ -294,7 +291,7 @@ function answer(qi, oi) {
   }
 }
 
-function scrollToQuestion(idx) {
+function scrollToQuestion(idx, behavior) {
   const el = document.getElementById(`q${idx}`);
   if (!el) return;
   const sticky = document.querySelector('.sticky-controls');
@@ -303,7 +300,7 @@ function scrollToQuestion(idx) {
   // not just the answer options.
   const buffer = 32;
   const top = el.getBoundingClientRect().top + window.pageYOffset - headerHeight - buffer;
-  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  window.scrollTo({ top: Math.max(0, top), behavior: behavior || 'smooth' });
 }
 
 function updateProgress() {
@@ -327,7 +324,7 @@ function showSummary(scroll = true) {
 
   // В списке на повторение «проходного балла» нет — это тренировка, а не тест:
   // важно только, что уже запомнилось, а что осталось повторить.
-  if (currentMode === 'learn' && learnFilter === 'repeat') {
+  if (currentMode === 'repeat') {
     const wrong = questions.length - state.score;
     div.innerHTML = `
       <h2>Повторение пройдено</h2>
@@ -347,7 +344,7 @@ function showSummary(scroll = true) {
           if (state.answers[i] === q.correct) marksStore.delete(keyOf(q));
         });
         saveMarks();
-        applyLearnFilter('repeat');
+        refreshRepeat();
       });
       div.appendChild(keepBtn);
     }
@@ -360,7 +357,7 @@ function showSummary(scroll = true) {
       againBtn.addEventListener('click', () => {
         marksStore.forEach(k => { delete answersStore[k]; });
         saveAnswers();
-        applyLearnFilter('repeat');
+        refreshRepeat();
       });
       div.appendChild(againBtn);
     }
@@ -396,10 +393,12 @@ resetBtn.addEventListener('click', () => {
     // их чистит отдельная кнопка в строке фильтра.
     answersStore = {};
     saveAnswers();
-    modeData.learn.questions = buildLearnQuestions();
-    modeData.test.questions  = buildTestQuestions();
-    modeData.learn.state = stateFromStore(modeData.learn.questions);
-    modeData.test.state  = newState(modeData.test.questions.length);
+    modeData.learn.questions  = buildLearnQuestions();
+    modeData.repeat.questions = buildRepeatQuestions();
+    modeData.test.questions   = buildTestQuestions();
+    modeData.learn.state  = stateFromStore(modeData.learn.questions);
+    modeData.repeat.state = stateFromStore(modeData.repeat.questions);
+    modeData.test.state   = newState(modeData.test.questions.length);
     questions = modeData[currentMode].questions;
     state = modeData[currentMode].state;
     testPoolFresh = true;  // next switch to test mode should show "Собираем вопросы…"
@@ -434,14 +433,19 @@ function hideLoader() {
 
 function doApplyMode(mode) {
   currentMode = mode;
+
+  // Список повторения собирается заново при каждом входе — метки могли
+  // измениться в обучении с прошлого раза.
+  if (mode === 'repeat') {
+    modeData.repeat.questions = buildRepeatQuestions();
+    modeData.repeat.state = stateFromStore(modeData.repeat.questions);
+  }
+
   questions = modeData[mode].questions;
   state = modeData[mode].state;
 
-  if (mode === 'test') {
-    document.body.classList.add('test-mode');
-  } else {
-    document.body.classList.remove('test-mode');
-  }
+  document.body.classList.toggle('test-mode', mode === 'test');
+  document.body.classList.toggle('repeat-mode', mode === 'repeat');
   modeButtons.forEach(b => {
     const active = b.dataset.mode === mode;
     b.classList.toggle('active', active);
@@ -450,14 +454,29 @@ function doApplyMode(mode) {
   try { localStorage.setItem(MODE_KEY, mode); } catch (e) {}
 
   render();
-  if (state.answered === questions.length) {
+  if (questions.length && state.answered === questions.length) {
     showSummary(false);
   }
-  window.scrollTo({ top: 0, behavior: 'auto' });
+  scrollToResumePoint();
+}
+
+// Возврат к тому месту, где остановились: первый неотвеченный вопрос.
+function scrollToResumePoint() {
+  if (!isStudyMode() || state.answered === 0 || state.answered === questions.length) {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    return;
+  }
+  const next = state.answers.indexOf(null);
+  if (next < 0) { window.scrollTo({ top: 0, behavior: 'auto' }); return; }
+  // Мгновенно и с уточнением: высота карточек меняется после подгрузки
+  // шрифтов, поэтому одного прыжка не хватает.
+  scrollToQuestion(next, 'auto');
+  requestAnimationFrame(() => scrollToQuestion(next, 'auto'));
+  setTimeout(() => scrollToQuestion(next, 'auto'), 150);
 }
 
 function applyMode(mode, opts) {
-  if (mode !== 'learn' && mode !== 'test') mode = 'learn';
+  if (mode !== 'learn' && mode !== 'repeat' && mode !== 'test') mode = 'learn';
   const skipLoader = opts && opts.skipLoader;
   if (mode === currentMode && !skipLoader) return;  // already in this mode — no-op
   const shouldShowLoader = mode === 'test' && testPoolFresh && !skipLoader;
@@ -497,20 +516,17 @@ if (ruBtn) {
   });
 }
 
-// --- Список «на повторение»: метка на карточке + фильтр над списком ---
-const repeatFilterBtns = document.querySelectorAll('.rf-btn');
+// --- Список «на повторение»: метка на карточке + режим «Повторить» ---
 const repeatActionsEl = document.getElementById('repeatActions');
 const repeatRetryBtn = document.getElementById('repeatRetryBtn');
 const repeatClearBtn = document.getElementById('repeatClearBtn');
-const rfAllCountEl = document.getElementById('rfAllCount');
-const rfRepeatCountEl = document.getElementById('rfRepeatCount');
+const repeatCountEl = document.getElementById('repeatCount');
 
 function makeMarkButton(q) {
   const key = keyOf(q);
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'mark-btn';
-  btn.title = 'Добавить вопрос в список на повторение';
   const icon = document.createElement('span');
   icon.className = 'mark-icon';
   icon.textContent = '🔖';
@@ -523,7 +539,10 @@ function makeMarkButton(q) {
   function sync(marked) {
     btn.setAttribute('aria-pressed', marked ? 'true' : 'false');
     icon.hidden = !marked;
-    text.textContent = marked ? 'В повторении' : 'Повторить';
+    text.textContent = marked ? 'В повторении — убрать' : 'Добавить в повторение';
+    btn.title = marked
+      ? 'Убрать вопрос из режима «Повторить»'
+      : 'Добавить вопрос в режим «Повторить»';
   }
   sync(marksStore.has(key));
 
@@ -533,54 +552,32 @@ function makeMarkButton(q) {
     saveMarks();
     sync(marked);
     updateRepeatCount();
-    // Список намеренно НЕ перестраивается: карточка не должна исчезать под пальцем.
-    // Снятая метка учтётся при следующем переключении фильтра.
+    // Список намеренно НЕ перестраивается: карточка не должна исчезать под
+    // пальцем. Снятая метка учтётся при следующем входе в режим «Повторить».
   });
   return btn;
 }
 
+// Счётчик во вкладке «Повторить» — единственное место, где виден размер списка.
 function updateRepeatCount() {
   const hasMarks = marksStore.size > 0;
-  if (rfAllCountEl) rfAllCountEl.textContent = ORIGINAL_QUESTIONS.length;
-  if (rfRepeatCountEl) rfRepeatCountEl.textContent = marksStore.size;
+  if (repeatCountEl) repeatCountEl.textContent = marksStore.size;
   if (repeatRetryBtn) repeatRetryBtn.disabled = !hasMarks;
   if (repeatClearBtn) repeatClearBtn.disabled = !hasMarks;
 }
 
-function syncFilterUI() {
-  repeatFilterBtns.forEach(b => {
-    const active = b.dataset.filter === learnFilter;
-    b.classList.toggle('active', active);
-    b.setAttribute('aria-pressed', active ? 'true' : 'false');
-  });
-  if (repeatActionsEl) repeatActionsEl.hidden = learnFilter !== 'repeat';
-  // Кнопки действий бессмысленны, пока список пуст.
-  const hasMarks = marksStore.size > 0;
-  if (repeatRetryBtn) repeatRetryBtn.disabled = !hasMarks;
-  if (repeatClearBtn) repeatClearBtn.disabled = !hasMarks;
+// Пересборка режима повторения после правки списка изнутри него самого.
+function refreshRepeat() {
   updateRepeatCount();
-}
-
-function applyLearnFilter(filter, opts) {
-  learnFilter = filter === 'repeat' ? 'repeat' : 'all';
-  saveFilter();
-  syncFilterUI();
-  modeData.learn.questions = buildLearnQuestions();
-  modeData.learn.state = stateFromStore(modeData.learn.questions);
-  if (currentMode !== 'learn') return;
-  questions = modeData.learn.questions;
-  state = modeData.learn.state;
+  if (currentMode !== 'repeat') return;
+  modeData.repeat.questions = buildRepeatQuestions();
+  modeData.repeat.state = stateFromStore(modeData.repeat.questions);
+  questions = modeData.repeat.questions;
+  state = modeData.repeat.state;
   render();
   if (questions.length && state.answered === questions.length) showSummary(false);
-  if (!(opts && opts.keepScroll)) window.scrollTo({ top: 0, behavior: 'auto' });
+  window.scrollTo({ top: 0, behavior: 'auto' });
 }
-
-repeatFilterBtns.forEach(b => {
-  b.addEventListener('click', () => {
-    if (b.dataset.filter === learnFilter) return;
-    applyLearnFilter(b.dataset.filter);
-  });
-});
 
 if (repeatRetryBtn) {
   repeatRetryBtn.addEventListener('click', () => {
@@ -589,7 +586,7 @@ if (repeatRetryBtn) {
     if (!confirm('Пройти вопросы на повторение заново?\n\nОтветы на остальные вопросы сохранятся.')) return;
     answered.forEach(k => { delete answersStore[k]; });
     saveAnswers();
-    applyLearnFilter(learnFilter);
+    refreshRepeat();
   });
 }
 
@@ -599,11 +596,11 @@ if (repeatClearBtn) {
     if (!confirm('Очистить список на повторение?\n\nОтветы на вопросы сохранятся.')) return;
     marksStore.clear();
     saveMarks();
-    applyLearnFilter('all');
+    refreshRepeat();
   });
 }
 
-syncFilterUI();
+updateRepeatCount();
 
 let savedMode = 'learn';
 try { savedMode = localStorage.getItem(MODE_KEY) || 'learn'; } catch (e) {}

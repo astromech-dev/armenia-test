@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#ffffff" />
 <title>Թեստ ՀՀ Սահմանադրության / Тест по Конституции РА</title>
-<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="styles.css?v=2" />
 </head>
 <body data-test="full">
 
@@ -44,6 +44,7 @@
   <div class="sticky-controls">
     <div class="mode-toggle" role="tablist" aria-label="Режим">
       <button type="button" class="mode-btn active" data-mode="learn" role="tab" aria-selected="true">Обучение</button>
+      <button type="button" class="mode-btn" data-mode="repeat" role="tab" aria-selected="false">🔖 Повторить<span class="tab-count" id="repeatCount">0</span></button>
       <button type="button" class="mode-btn" data-mode="test" role="tab" aria-selected="false">Самопроверка</button>
     </div>
     <div class="progress">
@@ -51,19 +52,13 @@
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     <span class="score" id="counter">0 / 33</span>
   </div>
-    <div class="learn-tools">
-      <div class="repeat-filter" role="group" aria-label="Какие вопросы показывать">
-        <button type="button" class="rf-btn active" data-filter="all" aria-pressed="true">Все · <span id="rfAllCount">…</span></button>
-        <button type="button" class="rf-btn" data-filter="repeat" aria-pressed="false">🔖 Повторить · <span id="rfRepeatCount">0</span></button>
-      </div>
-      <div class="ru-toggle">
-        <button type="button" class="ru-btn" id="ruBtn" aria-pressed="true" title="Показывать или скрывать русский перевод">
-          <span class="ru-switch"><span class="ru-knob"></span></span>
-          <span class="ru-label">Перевод на русский</span>
-        </button>
-      </div>
+    <div class="ru-toggle">
+      <button type="button" class="ru-btn" id="ruBtn" aria-pressed="true" title="Показывать или скрывать русский перевод">
+        <span class="ru-switch"><span class="ru-knob"></span></span>
+        <span class="ru-label">Перевод на русский</span>
+      </button>
     </div>
-    <div class="repeat-actions" id="repeatActions" hidden>
+    <div class="repeat-actions" id="repeatActions">
       <button type="button" class="ra-btn" id="repeatRetryBtn">Пройти заново</button>
       <button type="button" class="ra-btn" id="repeatClearBtn">Очистить список</button>
     </div>
@@ -81,9 +76,9 @@
   </footer>
 </div>
 
-<script src="articles.js"></script>
-<script src="questions-full.js"></script>
-<script src="config.js"></script>
-<script src="app.js"></script>
+<script src="articles.js?v=2"></script>
+<script src="questions-full.js?v=2"></script>
+<script src="config.js?v=2"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
