@@ -27,6 +27,62 @@ function shuffle(arr) {
 
 const TEST_QUESTION_COUNT = 33;
 
+// --- Сохранение прогресса и списка «на повторение» (localStorage) ---
+// Ключи в хранилище неймспейсятся по тесту (data-test на <body>), чтобы банк из 33
+// и банк из 135 вопросов не перетирали прогресс друг друга.
+const TEST_ID = (document.body.dataset && document.body.dataset.test) || 'official';
+const LS_ANSWERS = 'arm-' + TEST_ID + '-answers';
+const LS_MARKS   = 'arm-' + TEST_ID + '-marks';
+const LS_FILTER  = 'arm-' + TEST_ID + '-filter';
+
+// Ключ вопроса — хеш армянского текста (FNV-1a, base36). По индексу в массиве
+// хранить нельзя: добавление или перестановка вопроса сдвинула бы весь прогресс.
+function hashKey(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return h.toString(36);
+}
+
+const QUESTION_KEYS = new Map();
+ORIGINAL_QUESTIONS.forEach(function (q) { QUESTION_KEYS.set(q, hashKey(q.hy)); });
+function keyOf(q) { return QUESTION_KEYS.get(q); }
+
+function loadJSON(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed == null ? fallback : parsed;
+  } catch (e) { return fallback; }
+}
+function saveJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+}
+
+// Ключи вопросов, которых больше нет в банке, отбрасываем — чтобы хранилище не росло.
+const KNOWN_KEYS = new Set(ORIGINAL_QUESTIONS.map(keyOf));
+
+let answersStore = {};
+const savedAnswers = loadJSON(LS_ANSWERS, {});
+Object.keys(savedAnswers).forEach(function (k) {
+  if (KNOWN_KEYS.has(k) && typeof savedAnswers[k] === 'number') answersStore[k] = savedAnswers[k];
+});
+
+const marksStore = new Set(
+  (loadJSON(LS_MARKS, []) || []).filter(function (k) { return KNOWN_KEYS.has(k); })
+);
+
+// 'all' — весь банк, 'repeat' — только отмеченные «на повторение».
+let learnFilter = loadJSON(LS_FILTER, 'all') === 'repeat' ? 'repeat' : 'all';
+if (learnFilter === 'repeat' && marksStore.size === 0) learnFilter = 'all';
+
+function saveAnswers() { saveJSON(LS_ANSWERS, answersStore); }
+function saveMarks()   { saveJSON(LS_MARKS, Array.from(marksStore)); }
+function saveFilter()  { saveJSON(LS_FILTER, learnFilter); }
+
 function newState(length) {
   return {
     answers: new Array(length).fill(null),
@@ -38,14 +94,32 @@ function newState(length) {
 // Learning mode = all questions in fixed source order (не перетасовывается,
 // чтобы порядок не менялся при обновлении страницы).
 // Test mode = random 33 picked from the full pool.
-function buildLearnQuestions() { return ORIGINAL_QUESTIONS.slice(); }
+function buildLearnQuestions() {
+  if (learnFilter === 'repeat') {
+    return ORIGINAL_QUESTIONS.filter(function (q) { return marksStore.has(keyOf(q)); });
+  }
+  return ORIGINAL_QUESTIONS.slice();
+}
 function buildTestQuestions() { return shuffle(ORIGINAL_QUESTIONS).slice(0, TEST_QUESTION_COUNT); }
+
+// Состояние обучения — производное от сохранённых ответов, а не отдельная память.
+function stateFromStore(qs) {
+  const st = newState(qs.length);
+  qs.forEach(function (q, i) {
+    const a = answersStore[keyOf(q)];
+    if (typeof a !== 'number' || !q.options[a]) return;
+    st.answers[i] = a;
+    st.answered++;
+    if (a === q.correct) st.score++;
+  });
+  return st;
+}
 
 const modeData = {
   learn: { questions: buildLearnQuestions(), state: null },
   test:  { questions: buildTestQuestions(),  state: null }
 };
-modeData.learn.state = newState(modeData.learn.questions.length);
+modeData.learn.state = stateFromStore(modeData.learn.questions);
 modeData.test.state  = newState(modeData.test.questions.length);
 
 let currentMode = 'learn';
@@ -60,6 +134,18 @@ const resetBtn = document.getElementById('resetBtn');
 
 function render() {
   quizEl.innerHTML = '';
+
+  if (questions.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.innerHTML = 'Список на повторение пуст.<br>' +
+      'Отмечайте вопросы кнопкой <span class="es-pill">Повторить</span> — ' +
+      'сюда же автоматически попадают те, где вы ошиблись.';
+    quizEl.appendChild(empty);
+    updateProgress();
+    return;
+  }
+
   questions.forEach((q, qi) => {
     const card = document.createElement('div');
     card.className = 'question';
@@ -86,6 +172,11 @@ function render() {
         ? 'Из постановления № 1040-Н (arlis.am)'
         : 'Сгенерирован по примеру / банку экзамена';
       head.appendChild(badge);
+    }
+
+    // Метка «на повторение» — только в обучении: там она и ставится, и читается.
+    if (currentMode === 'learn') {
+      head.appendChild(makeMarkButton(q));
     }
 
     card.appendChild(head);
@@ -178,9 +269,22 @@ function render() {
 
 function answer(qi, oi) {
   if (state.answers[qi] !== null) return;
+  const q = questions[qi];
+  const ok = oi === q.correct;
   state.answers[qi] = oi;
-  if (oi === questions[qi].correct) state.score++;
+  if (ok) state.score++;
   state.answered++;
+
+  // Прогресс сохраняется только в обучении: «Самопроверка» — разовая попытка.
+  if (currentMode === 'learn') {
+    answersStore[keyOf(q)] = oi;
+    saveAnswers();
+    if (!ok && !marksStore.has(keyOf(q))) {
+      marksStore.add(keyOf(q));
+      saveMarks();
+      updateRepeatCount();
+    }
+  }
   render();
 
   if (state.answered === questions.length) {
@@ -203,9 +307,10 @@ function scrollToQuestion(idx) {
 }
 
 function updateProgress() {
+  const total = questions.length;
   scoreEl.textContent = `${state.score} / ${state.answered}`;
-  counterEl.textContent = `${state.answered} / ${questions.length}`;
-  progressFill.style.width = `${(state.answered / questions.length) * 100}%`;
+  counterEl.textContent = `${state.answered} / ${total}`;
+  progressFill.style.width = total ? `${(state.answered / total) * 100}%` : '0%';
 }
 
 function passingScore() {
@@ -219,6 +324,54 @@ function showSummary(scroll = true) {
   const div = document.createElement('div');
   div.className = 'summary';
   div.id = 'summary';
+
+  // В списке на повторение «проходного балла» нет — это тренировка, а не тест:
+  // важно только, что уже запомнилось, а что осталось повторить.
+  if (currentMode === 'learn' && learnFilter === 'repeat') {
+    const wrong = questions.length - state.score;
+    div.innerHTML = `
+      <h2>Повторение пройдено</h2>
+      <div class="result">${state.score} / ${questions.length}</div>
+      <div class="note">${wrong
+        ? `Правильно ${state.score}, с ошибкой ${wrong}. Уберите из списка то, что уже запомнили — остальное прогоните ещё раз.`
+        : 'Все вопросы отвечены верно. Можно убрать их из списка.'}</div>
+    `;
+
+    if (state.score > 0) {
+      const keepBtn = document.createElement('button');
+      keepBtn.type = 'button';
+      keepBtn.className = 'summary-action';
+      keepBtn.textContent = `Убрать правильные из списка · ${state.score}`;
+      keepBtn.addEventListener('click', () => {
+        questions.forEach((q, i) => {
+          if (state.answers[i] === q.correct) marksStore.delete(keyOf(q));
+        });
+        saveMarks();
+        applyLearnFilter('repeat');
+      });
+      div.appendChild(keepBtn);
+    }
+
+    if (wrong > 0) {
+      const againBtn = document.createElement('button');
+      againBtn.type = 'button';
+      againBtn.className = 'summary-action secondary';
+      againBtn.textContent = 'Пройти список заново';
+      againBtn.addEventListener('click', () => {
+        marksStore.forEach(k => { delete answersStore[k]; });
+        saveAnswers();
+        applyLearnFilter('repeat');
+      });
+      div.appendChild(againBtn);
+    }
+
+    quizEl.appendChild(div);
+    if (scroll) {
+      setTimeout(() => div.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+    }
+    return;
+  }
+
   const threshold = passingScore();
   const passed = state.score >= threshold;
   div.innerHTML = `
@@ -236,12 +389,16 @@ function showSummary(scroll = true) {
 }
 
 resetBtn.addEventListener('click', () => {
-  const anyProgress = modeData.learn.state.answered > 0 || modeData.test.state.answered > 0;
-  if (!anyProgress || confirm('Սկսել նորից? / Начать заново?')) {
-    // Reshuffle learn order and pick a fresh 33 for the test. Clear both states.
+  const anyProgress = Object.keys(answersStore).length > 0 || modeData.test.state.answered > 0;
+  const question = 'Սկսել նորից? / Начать заново?\n\nОтветы будут стёрты. Список на повторение сохранится.';
+  if (!anyProgress || confirm(question)) {
+    // Стираются только ответы; метки «на повторение» переживают сброс —
+    // их чистит отдельная кнопка в строке фильтра.
+    answersStore = {};
+    saveAnswers();
     modeData.learn.questions = buildLearnQuestions();
     modeData.test.questions  = buildTestQuestions();
-    modeData.learn.state = newState(modeData.learn.questions.length);
+    modeData.learn.state = stateFromStore(modeData.learn.questions);
     modeData.test.state  = newState(modeData.test.questions.length);
     questions = modeData[currentMode].questions;
     state = modeData[currentMode].state;
@@ -339,6 +496,114 @@ if (ruBtn) {
     applyRu(ruBtn.getAttribute('aria-pressed') !== 'true');
   });
 }
+
+// --- Список «на повторение»: метка на карточке + фильтр над списком ---
+const repeatFilterBtns = document.querySelectorAll('.rf-btn');
+const repeatActionsEl = document.getElementById('repeatActions');
+const repeatRetryBtn = document.getElementById('repeatRetryBtn');
+const repeatClearBtn = document.getElementById('repeatClearBtn');
+const rfAllCountEl = document.getElementById('rfAllCount');
+const rfRepeatCountEl = document.getElementById('rfRepeatCount');
+
+function makeMarkButton(q) {
+  const key = keyOf(q);
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'mark-btn';
+  btn.title = 'Добавить вопрос в список на повторение';
+  const icon = document.createElement('span');
+  icon.className = 'mark-icon';
+  icon.textContent = '🔖';
+  const text = document.createElement('span');
+  text.className = 'mark-text';
+  btn.appendChild(icon);
+  btn.appendChild(text);
+
+  // Иконка = маркер «отмечено»: без метки её нет, с меткой она появляется.
+  function sync(marked) {
+    btn.setAttribute('aria-pressed', marked ? 'true' : 'false');
+    icon.hidden = !marked;
+    text.textContent = marked ? 'В повторении' : 'Повторить';
+  }
+  sync(marksStore.has(key));
+
+  btn.addEventListener('click', () => {
+    const marked = !marksStore.has(key);
+    if (marked) marksStore.add(key); else marksStore.delete(key);
+    saveMarks();
+    sync(marked);
+    updateRepeatCount();
+    // Список намеренно НЕ перестраивается: карточка не должна исчезать под пальцем.
+    // Снятая метка учтётся при следующем переключении фильтра.
+  });
+  return btn;
+}
+
+function updateRepeatCount() {
+  const hasMarks = marksStore.size > 0;
+  if (rfAllCountEl) rfAllCountEl.textContent = ORIGINAL_QUESTIONS.length;
+  if (rfRepeatCountEl) rfRepeatCountEl.textContent = marksStore.size;
+  if (repeatRetryBtn) repeatRetryBtn.disabled = !hasMarks;
+  if (repeatClearBtn) repeatClearBtn.disabled = !hasMarks;
+}
+
+function syncFilterUI() {
+  repeatFilterBtns.forEach(b => {
+    const active = b.dataset.filter === learnFilter;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  if (repeatActionsEl) repeatActionsEl.hidden = learnFilter !== 'repeat';
+  // Кнопки действий бессмысленны, пока список пуст.
+  const hasMarks = marksStore.size > 0;
+  if (repeatRetryBtn) repeatRetryBtn.disabled = !hasMarks;
+  if (repeatClearBtn) repeatClearBtn.disabled = !hasMarks;
+  updateRepeatCount();
+}
+
+function applyLearnFilter(filter, opts) {
+  learnFilter = filter === 'repeat' ? 'repeat' : 'all';
+  saveFilter();
+  syncFilterUI();
+  modeData.learn.questions = buildLearnQuestions();
+  modeData.learn.state = stateFromStore(modeData.learn.questions);
+  if (currentMode !== 'learn') return;
+  questions = modeData.learn.questions;
+  state = modeData.learn.state;
+  render();
+  if (questions.length && state.answered === questions.length) showSummary(false);
+  if (!(opts && opts.keepScroll)) window.scrollTo({ top: 0, behavior: 'auto' });
+}
+
+repeatFilterBtns.forEach(b => {
+  b.addEventListener('click', () => {
+    if (b.dataset.filter === learnFilter) return;
+    applyLearnFilter(b.dataset.filter);
+  });
+});
+
+if (repeatRetryBtn) {
+  repeatRetryBtn.addEventListener('click', () => {
+    const answered = Array.from(marksStore).filter(k => typeof answersStore[k] === 'number');
+    if (!answered.length) return;
+    if (!confirm('Пройти вопросы на повторение заново?\n\nОтветы на остальные вопросы сохранятся.')) return;
+    answered.forEach(k => { delete answersStore[k]; });
+    saveAnswers();
+    applyLearnFilter(learnFilter);
+  });
+}
+
+if (repeatClearBtn) {
+  repeatClearBtn.addEventListener('click', () => {
+    if (!marksStore.size) return;
+    if (!confirm('Очистить список на повторение?\n\nОтветы на вопросы сохранятся.')) return;
+    marksStore.clear();
+    saveMarks();
+    applyLearnFilter('all');
+  });
+}
+
+syncFilterUI();
 
 let savedMode = 'learn';
 try { savedMode = localStorage.getItem(MODE_KEY) || 'learn'; } catch (e) {}

@@ -7,7 +7,7 @@
 <title>Թեստ ՀՀ Սահմանադրության / Тест по Конституции РА</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body data-test="full">
 
 <div class="loader-overlay" id="loader" aria-hidden="true">
   <div class="spinner"></div>
@@ -51,11 +51,21 @@
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     <span class="score" id="counter">0 / 33</span>
   </div>
-    <div class="ru-toggle">
-      <button type="button" class="ru-btn" id="ruBtn" aria-pressed="true" title="Показывать или скрывать русский перевод">
-        <span class="ru-switch"><span class="ru-knob"></span></span>
-        <span class="ru-label">Перевод на русский</span>
-      </button>
+    <div class="learn-tools">
+      <div class="repeat-filter" role="group" aria-label="Какие вопросы показывать">
+        <button type="button" class="rf-btn active" data-filter="all" aria-pressed="true">Все · <span id="rfAllCount">…</span></button>
+        <button type="button" class="rf-btn" data-filter="repeat" aria-pressed="false">🔖 Повторить · <span id="rfRepeatCount">0</span></button>
+      </div>
+      <div class="ru-toggle">
+        <button type="button" class="ru-btn" id="ruBtn" aria-pressed="true" title="Показывать или скрывать русский перевод">
+          <span class="ru-switch"><span class="ru-knob"></span></span>
+          <span class="ru-label">Перевод на русский</span>
+        </button>
+      </div>
+    </div>
+    <div class="repeat-actions" id="repeatActions" hidden>
+      <button type="button" class="ra-btn" id="repeatRetryBtn">Пройти заново</button>
+      <button type="button" class="ra-btn" id="repeatClearBtn">Очистить список</button>
     </div>
   </div>
 
