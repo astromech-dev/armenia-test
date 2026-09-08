@@ -595,6 +595,79 @@
     color: #777;
     margin-top: 8px;
   }
+  /* --- Перенос прогресса: свёрнутый служебный блок под кнопкой «Заново» --- */
+  .backup {
+    margin-top: 16px;
+    background: #ffffff;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 0 16px;
+  }
+  .backup > summary {
+    padding: 13px 0;
+    font-size: 13px;
+    color: #777;
+    cursor: pointer;
+    list-style: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .backup > summary::-webkit-details-marker { display: none; }
+  .backup > summary::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 11px;
+    transition: transform 0.15s ease;
+  }
+  .backup[open] > summary::before { transform: rotate(90deg); }
+  .backup > summary:hover { color: #1a1a1a; }
+  .backup-body { padding-bottom: 16px; }
+  .backup-hint {
+    margin: 0 0 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #777;
+  }
+  .backup-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .backup-file-label {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  .backup-field {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #1a1a1a;
+    resize: vertical;
+    -webkit-appearance: none;
+  }
+  .backup-field:focus {
+    outline: none;
+    border-color: #c9c9c9;
+    background: #ffffff;
+  }
+  .backup-status {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #777;
+  }
+  .backup-status:empty { display: none; }
+  .backup-status.ok { color: #1b5e20; }
+  .backup-status.warn { color: #8a5a12; }
+  .backup-status.err { color: #b3261e; }
   footer {
     text-align: center;
     font-size: 12px;

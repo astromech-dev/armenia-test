@@ -497,6 +497,179 @@ if (ruBtn) {
   });
 }
 
+// --- Перенос прогресса между браузерами: код-строка + файл ---
+// Бэкенда нет, поэтому прогресс переносится текстом: ответы и список
+// «на повторение» кодируются в одну строку по ключам вопросов (хешам текста),
+// а не по индексам — код остаётся годным после пополнения банка вопросов.
+const BACKUP_PREFIX = 'AT1';
+
+const backupField = document.getElementById('backupField');
+const backupStatusEl = document.getElementById('backupStatus');
+const backupCopyBtn = document.getElementById('backupCopyBtn');
+const backupSaveBtn = document.getElementById('backupSaveBtn');
+const backupApplyBtn = document.getElementById('backupApplyBtn');
+const backupFileInput = document.getElementById('backupFileInput');
+
+function buildBackupCode() {
+  const answers = Object.keys(answersStore)
+    .map(function (k) { return k + ':' + answersStore[k]; })
+    .join(',');
+  const marks = Array.from(marksStore).join(',');
+  return [BACKUP_PREFIX, TEST_ID, 'a=' + answers, 'm=' + marks].join('|');
+}
+
+function parseBackupCode(raw) {
+  const text = String(raw || '').replace(/\s+/g, '');
+  if (!text) return { error: 'Вставьте код в поле выше.' };
+  const parts = text.split('|');
+  if (parts[0] !== BACKUP_PREFIX) return { error: 'Это не код прогресса.' };
+  if (parts[1] !== TEST_ID) {
+    return {
+      error: parts[1] === 'official'
+        ? 'Это код от теста из 33 вопросов — откройте его на той странице.'
+        : 'Это код от теста для подготовки — откройте его на той странице.'
+    };
+  }
+
+  const answers = {};
+  const marks = [];
+  let unknown = 0;
+  parts.slice(2).forEach(function (chunk) {
+    if (chunk.indexOf('a=') === 0) {
+      chunk.slice(2).split(',').forEach(function (pair) {
+        if (!pair) return;
+        const bits = pair.split(':');
+        const key = bits[0];
+        const idx = parseInt(bits[1], 10);
+        if (!KNOWN_KEYS.has(key)) { unknown++; return; }
+        if (!isNaN(idx)) answers[key] = idx;
+      });
+    } else if (chunk.indexOf('m=') === 0) {
+      chunk.slice(2).split(',').forEach(function (key) {
+        if (!key) return;
+        if (!KNOWN_KEYS.has(key)) { unknown++; return; }
+        marks.push(key);
+      });
+    }
+  });
+  return { answers: answers, marks: marks, unknown: unknown };
+}
+
+function setBackupStatus(text, kind) {
+  if (!backupStatusEl) return;
+  backupStatusEl.textContent = text;
+  backupStatusEl.className = 'backup-status' + (kind ? ' ' + kind : '');
+}
+
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  // Safari без разрешения на буфер обмена: копируем через выделение поля.
+  return new Promise(function (resolve, reject) {
+    if (!backupField) return reject();
+    backupField.select();
+    try {
+      document.execCommand('copy') ? resolve() : reject();
+    } catch (e) { reject(e); }
+  });
+}
+
+if (backupCopyBtn) {
+  backupCopyBtn.addEventListener('click', () => {
+    const code = buildBackupCode();
+    if (backupField) backupField.value = code;
+    copyText(code).then(
+      () => setBackupStatus('Код скопирован. Вставьте его в тот же тест на другом устройстве.', 'ok'),
+      () => setBackupStatus('Скопируйте код из поля вручную — браузер не дал доступ к буферу.', 'warn')
+    );
+  });
+}
+
+if (backupSaveBtn) {
+  backupSaveBtn.addEventListener('click', () => {
+    const code = buildBackupCode();
+    const stamp = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'armenia-test-' + TEST_ID + '-' + stamp + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    setBackupStatus('Файл сохранён. Его можно открыть здесь же кнопкой «Выбрать файл».', 'ok');
+  });
+}
+
+function applyBackup(raw) {
+  const data = parseBackupCode(raw);
+  if (data.error) { setBackupStatus(data.error, 'err'); return; }
+
+  const answersCount = Object.keys(data.answers).length;
+  if (!answersCount && !data.marks.length) {
+    setBackupStatus(data.unknown
+      ? 'Ни один вопрос из кода не найден в этом тесте — похоже, код от другой версии банка вопросов.'
+      : 'В коде нет ни ответов, ни отмеченных вопросов.', 'err');
+    return;
+  }
+  const hasProgress = Object.keys(answersStore).length > 0 || marksStore.size > 0;
+  if (hasProgress && !confirm('Заменить текущий прогресс данными из кода?\n\nТекущие ответы и список на повторение будут перезаписаны.')) {
+    setBackupStatus('Отменено — прогресс не изменён.');
+    return;
+  }
+
+  answersStore = data.answers;
+  marksStore.clear();
+  data.marks.forEach(function (k) { marksStore.add(k); });
+  saveAnswers();
+  saveMarks();
+
+  modeData.learn.questions = buildLearnQuestions();
+  modeData.learn.state = stateFromStore(modeData.learn.questions);
+  if (currentMode === 'learn') {
+    questions = modeData.learn.questions;
+    state = modeData.learn.state;
+    render();
+  }
+  syncFilterUI();
+
+  let msg = 'Загружено: ' + answersCount + ' ' + pluralOtvety(answersCount) +
+    ', на повторение — ' + data.marks.length + '.';
+  if (data.unknown) msg += ' Пропущено вопросов не из этого банка: ' + data.unknown + '.';
+  setBackupStatus(msg, 'ok');
+}
+
+function pluralOtvety(n) {
+  const n10 = n % 10, n100 = n % 100;
+  if (n10 === 1 && n100 !== 11) return 'ответ';
+  if (n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return 'ответа';
+  return 'ответов';
+}
+
+if (backupApplyBtn) {
+  backupApplyBtn.addEventListener('click', () => {
+    applyBackup(backupField ? backupField.value : '');
+  });
+}
+
+if (backupFileInput) {
+  backupFileInput.addEventListener('change', () => {
+    const file = backupFileInput.files && backupFileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function () {
+      if (backupField) backupField.value = String(reader.result).trim();
+      applyBackup(reader.result);
+    };
+    reader.onerror = function () { setBackupStatus('Не удалось прочитать файл.', 'err'); };
+    reader.readAsText(file);
+    backupFileInput.value = '';
+  });
+}
+
+
 // --- Список «на повторение»: метка на карточке + фильтр над списком ---
 const repeatFilterBtns = document.querySelectorAll('.rf-btn');
 const repeatActionsEl = document.getElementById('repeatActions');
