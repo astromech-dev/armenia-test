@@ -47,8 +47,14 @@ function hashKey(str) {
 }
 
 const QUESTION_KEYS = new Map();
-ORIGINAL_QUESTIONS.forEach(function (q) { QUESTION_KEYS.set(q, hashKey(q.hy)); });
+const QUESTION_NUMBERS = new Map();
+ORIGINAL_QUESTIONS.forEach(function (q, i) {
+  QUESTION_KEYS.set(q, hashKey(q.hy));
+  QUESTION_NUMBERS.set(q, i + 1);
+});
 function keyOf(q) { return QUESTION_KEYS.get(q); }
+// Номер вопроса в полном списке — в режиме повторения он не совпадает с позицией.
+function originalNumberOf(q) { return QUESTION_NUMBERS.get(q); }
 
 function loadJSON(key, fallback) {
   try {
@@ -156,7 +162,10 @@ function render() {
 
     const num = document.createElement('div');
     num.className = 'q-num';
-    num.textContent = `Вопрос ${qi + 1}`;
+    const origNum = originalNumberOf(q);
+    num.textContent = (currentMode === 'learn' && learnFilter === 'repeat' && origNum)
+      ? `Вопрос ${qi + 1} (№ ${origNum} в списке)`
+      : `Вопрос ${qi + 1}`;
     head.appendChild(num);
 
     // Бейдж источника показывается только если в наборе больше одного типа
@@ -264,6 +273,7 @@ function render() {
   });
 
   updateProgress();
+  renderJumpGrid();
   if (currentMode === 'test') testPoolFresh = false;
 }
 
@@ -294,7 +304,7 @@ function answer(qi, oi) {
   }
 }
 
-function scrollToQuestion(idx) {
+function scrollToQuestion(idx, behavior) {
   const el = document.getElementById(`q${idx}`);
   if (!el) return;
   const sticky = document.querySelector('.sticky-controls');
@@ -303,7 +313,7 @@ function scrollToQuestion(idx) {
   // not just the answer options.
   const buffer = 32;
   const top = el.getBoundingClientRect().top + window.pageYOffset - headerHeight - buffer;
-  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  window.scrollTo({ top: Math.max(0, top), behavior: behavior || 'smooth' });
 }
 
 function updateProgress() {
@@ -450,10 +460,10 @@ function doApplyMode(mode) {
   try { localStorage.setItem(MODE_KEY, mode); } catch (e) {}
 
   render();
-  if (state.answered === questions.length) {
+  if (questions.length && state.answered === questions.length) {
     showSummary(false);
   }
-  window.scrollTo({ top: 0, behavior: 'auto' });
+  scrollToResumePoint();
 }
 
 function applyMode(mode, opts) {
@@ -481,8 +491,34 @@ modeButtons.forEach(b => {
 const RU_KEY = 'arm-test-ru';
 const ruBtn = document.getElementById('ruBtn');
 
+// Перевод меняет высоту карточек, поэтому позицию держим относительно
+// вопроса, который сейчас под липкой шапкой, а не по абсолютному скроллу.
+function withScrollAnchor(change) {
+  const sticky = document.querySelector('.sticky-controls');
+  const headerHeight = sticky ? sticky.getBoundingClientRect().height : 0;
+  const cards = document.querySelectorAll('.question');
+  let anchor = null;
+  let anchorOffset = 0;
+  for (let i = 0; i < cards.length; i++) {
+    const top = cards[i].getBoundingClientRect().top - headerHeight;
+    if (top + cards[i].offsetHeight > 0) {   // карточка ещё видна
+      anchor = cards[i];
+      anchorOffset = top;
+      break;
+    }
+  }
+
+  change();
+
+  if (!anchor) return;
+  const shift = (anchor.getBoundingClientRect().top - headerHeight) - anchorOffset;
+  if (shift) window.scrollBy({ top: shift, behavior: 'auto' });
+}
+
 function applyRu(show) {
-  document.body.classList.toggle('no-ru', !show);
+  withScrollAnchor(() => {
+    document.body.classList.toggle('no-ru', !show);
+  });
   if (ruBtn) ruBtn.setAttribute('aria-pressed', show ? 'true' : 'false');
   try { localStorage.setItem(RU_KEY, show ? '1' : '0'); } catch (e) {}
 }
@@ -495,6 +531,62 @@ if (ruBtn) {
   ruBtn.addEventListener('click', () => {
     applyRu(ruBtn.getAttribute('aria-pressed') !== 'true');
   });
+}
+
+// --- Быстрый переход к вопросу: сетка номеров + возврат к месту остановки ---
+const jumpBox = document.getElementById('jumpBox');
+const jumpGridEl = document.getElementById('jumpGrid');
+const jumpSummaryEl = document.getElementById('jumpSummary');
+
+// Квадратик на вопрос: цвет = состояние ответа, рамка = метка «на повторение».
+function renderJumpGrid() {
+  if (!jumpGridEl) return;
+  jumpGridEl.innerHTML = '';
+  questions.forEach((q, qi) => {
+    const cell = document.createElement('button');
+    cell.type = 'button';
+    cell.className = 'jump-cell';
+    const answer = state.answers[qi];
+    if (answer !== null) {
+      cell.classList.add(answer === q.correct ? 'ok' : 'err');
+    }
+    if (marksStore.has(keyOf(q))) cell.classList.add('marked');
+
+    const origNum = originalNumberOf(q);
+    const showOrig = currentMode === 'learn' && learnFilter === 'repeat' && origNum;
+    cell.textContent = showOrig ? origNum : qi + 1;
+    cell.title = showOrig ? `Вопрос ${qi + 1} (№ ${origNum} в списке)` : `Вопрос ${qi + 1}`;
+
+    cell.addEventListener('click', () => {
+      if (jumpBox) jumpBox.open = false;
+      scrollToQuestion(qi);
+    });
+    jumpGridEl.appendChild(cell);
+  });
+
+  if (jumpSummaryEl) {
+    // Коротко, иначе кнопка не встаёт в одну строку с тумблером перевода.
+    const left = questions.length - state.answered;
+    jumpSummaryEl.textContent = left > 0 ? `К вопросу · ${left}` : 'К вопросу';
+    jumpSummaryEl.title = left > 0
+      ? `Список вопросов — не отвечено ${left}`
+      : 'Список вопросов';
+  }
+}
+
+// Возврат к тому месту, где остановились: первый неотвеченный вопрос.
+function scrollToResumePoint() {
+  const isStudy = currentMode === 'learn';
+  const next = isStudy ? state.answers.indexOf(null) : -1;
+  if (!isStudy || state.answered === 0 || next < 0) {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    return;
+  }
+  // С уточнением: высота карточек меняется после подгрузки шрифтов,
+  // одного прыжка не хватает.
+  scrollToQuestion(next, 'auto');
+  requestAnimationFrame(() => scrollToQuestion(next, 'auto'));
+  setTimeout(() => scrollToQuestion(next, 'auto'), 150);
 }
 
 // --- Перенос прогресса между браузерами: код-строка + файл ---
@@ -706,6 +798,7 @@ function makeMarkButton(q) {
     saveMarks();
     sync(marked);
     updateRepeatCount();
+    renderJumpGrid();
     // Список намеренно НЕ перестраивается: карточка не должна исчезать под пальцем.
     // Снятая метка учтётся при следующем переключении фильтра.
   });
@@ -745,7 +838,7 @@ function applyLearnFilter(filter, opts) {
   state = modeData.learn.state;
   render();
   if (questions.length && state.answered === questions.length) showSummary(false);
-  if (!(opts && opts.keepScroll)) window.scrollTo({ top: 0, behavior: 'auto' });
+  if (!(opts && opts.keepScroll)) scrollToResumePoint();
 }
 
 repeatFilterBtns.forEach(b => {

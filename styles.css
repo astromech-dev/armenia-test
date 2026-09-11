@@ -55,12 +55,15 @@
     top: 0;
     z-index: 10;
     background: #fafafa;
-    padding: 10px 0 12px;
+    padding: 8px 0 10px;
     border-bottom: 1px solid #ececec;
     margin-bottom: 16px;
   }
   .sticky-controls .mode-toggle { margin-top: 0; }
-  .sticky-controls .progress { margin-top: 10px; }
+  .sticky-controls .progress { margin-top: 8px; }
+  .sticky-controls .repeat-filter { margin-top: 8px; }
+  .sticky-controls .learn-tools { margin-top: 8px; }
+  .sticky-controls .jump-grid { max-height: 38vh; }
   h1 {
     font-size: 16px;
     font-weight: 600;
@@ -177,20 +180,24 @@
     margin-top: 10px;
   }
   .learn-tools .ru-toggle { margin-top: 0; }
+  .learn-tools .repeat-actions { margin-top: 0; }
   body.test-mode .learn-tools,
   body.test-mode .repeat-actions { display: none; }
   .repeat-filter {
-    display: flex;
+    display: inline-flex;
     gap: 4px;
+    margin-top: 10px;
     background: #ececec;
-    border-radius: 8px;
+    border-radius: 7px;
     padding: 3px;
   }
+  body.test-mode .repeat-filter { display: none; }
   .rf-btn {
+    flex: 0 0 auto;
     background: transparent;
     border: none;
-    padding: 5px 10px;
-    font-size: 12px;
+    padding: 6px 12px;
+    font-size: 12.5px;
     font-weight: 500;
     color: #777;
     border-radius: 6px;
@@ -306,6 +313,87 @@
   body.no-ru .ru-only {
     display: none !important;
   }
+  /* --- Быстрый переход к вопросу --- */
+  /* Панель живёт в липкой шапке, в одной строке с тумблером перевода: кнопка
+     всегда под рукой, а раскрытая сетка занимает всю ширину строки. */
+  .jumpbox {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 0 10px;
+  }
+  .jumpbox[open] {
+    flex: 1 0 100%;
+    margin-left: 0;
+    background: #ffffff;
+    border-color: #ececec;
+  }
+  .jumpbox > summary {
+    padding: 5px 0;
+    font-size: 12px;
+    color: #777;
+    cursor: pointer;
+    list-style: none;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .jumpbox > summary::-webkit-details-marker { display: none; }
+  .jumpbox > summary::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 11px;
+    transition: transform 0.15s ease;
+  }
+  .jumpbox[open] > summary::before { transform: rotate(90deg); }
+  .jumpbox > summary:hover { color: #1a1a1a; }
+  .jump-body { padding-bottom: 12px; }
+  .jump-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-bottom: 10px;
+    font-size: 11px;
+    color: #999;
+  }
+  .jl { display: inline-flex; align-items: center; gap: 5px; }
+  .jl::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: #ececec;
+    border: 1px solid #dcdcdc;
+  }
+  .jl.ok::before { background: #e8f4ea; border-color: #b9ddc0; }
+  .jl.err::before { background: #fdeaea; border-color: #f3c2c2; }
+  .jl.marked::before { background: #fdf4e6; border-color: #e0b96a; }
+  .jump-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+    gap: 6px;
+    max-height: 42vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .jump-cell {
+    padding: 8px 2px;
+    background: #fafafa;
+    border: 1px solid #e6e6e6;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: #777;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s ease;
+  }
+  .jump-cell:hover { border-color: #999; }
+  .jump-cell.ok { background: #e8f4ea; border-color: #b9ddc0; color: #1b5e20; }
+  .jump-cell.err { background: #fdeaea; border-color: #f3c2c2; color: #b3261e; }
+  .jump-cell.marked { border-color: #e0b96a; border-width: 2px; font-weight: 600; }
   .question {
     background: #ffffff;
     border: 1px solid #ececec;
