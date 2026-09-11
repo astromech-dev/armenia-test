@@ -312,23 +312,24 @@
   body.no-ru .ru-only {
     display: none !important;
   }
-  /* --- Быстрый переход к вопросу: компактное поле в липкой шапке --- */
-  .jumpto {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: auto;
+  /* --- Быстрый переход к вопросу: счётчик прогресса работает как кнопка --- */
+  .counter-btn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: #555;
+    border-bottom: 1px dashed #c9c9c9;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
   }
-  .jumpto-label {
-    font-size: 12px;
-    color: #999;
-    white-space: nowrap;
-  }
-  .jumpto-input {
-    width: 54px;
-    padding: 5px 6px;
+  .counter-btn:hover { color: #1a1a1a; border-bottom-color: #999; }
+  .counter-input {
+    width: 76px;
+    padding: 2px 6px;
     background: #ffffff;
-    border: 1px solid #e0e0e0;
+    border: 1px solid #999;
     border-radius: 6px;
     font-family: inherit;
     font-size: 13px;
@@ -337,29 +338,14 @@
     -webkit-appearance: none;
     appearance: none;
     -moz-appearance: textfield;
-    transition: border-color 0.15s ease;
   }
-  .jumpto-input::-webkit-outer-spin-button,
-  .jumpto-input::-webkit-inner-spin-button {
+  .counter-input::-webkit-outer-spin-button,
+  .counter-input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
-  .jumpto-input:focus { outline: none; border-color: #999; }
-  .jumpto-input.error { border-color: #b3261e; }
-  .jumpto-btn {
-    padding: 5px 10px;
-    background: transparent;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 13px;
-    line-height: 1.2;
-    color: #777;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: color 0.15s ease, border-color 0.15s ease;
-  }
-  .jumpto-btn:hover { color: #1a1a1a; border-color: #999; }
+  .counter-input:focus { outline: none; border-color: #1a1a1a; }
+  .counter-input.error { border-color: #b3261e; color: #b3261e; }
   .question {
     background: #ffffff;
     border: 1px solid #ececec;

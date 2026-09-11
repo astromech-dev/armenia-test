@@ -273,7 +273,6 @@ function render() {
   });
 
   updateProgress();
-  syncJumpLimit();
   if (currentMode === 'test') testPoolFresh = false;
 }
 
@@ -533,8 +532,9 @@ if (ruBtn) {
   });
 }
 
-// --- Быстрый переход к вопросу: поле с номером + возврат к месту остановки ---
-const jumpForm = document.getElementById('jumpForm');
+// --- Быстрый переход к вопросу: счётчик превращается в поле ---
+// Отдельного контрола в шапке нет намеренно: тап по счётчику «6 / 135» открывает
+// поле для номера на его же месте.
 const jumpInput = document.getElementById('jumpInput');
 
 // Ищем ровно тот номер, который написан в заголовке карточки: в повторении это
@@ -549,29 +549,50 @@ function findQuestionIndexByNumber(num) {
   return (num >= 1 && num <= questions.length) ? num - 1 : -1;
 }
 
-function flashJumpError() {
-  if (!jumpInput) return;
-  jumpInput.classList.add('error');
-  setTimeout(() => jumpInput.classList.remove('error'), 900);
-}
-
-if (jumpForm) {
-  jumpForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const num = parseInt(jumpInput.value, 10);
-    if (!num || num < 1) { flashJumpError(); return; }
-    const idx = findQuestionIndexByNumber(num);
-    if (idx < 0) { flashJumpError(); return; }   // вопроса нет в текущем списке
-    jumpInput.blur();
-    scrollToQuestion(idx);
-  });
-}
-
-function syncJumpLimit() {
-  if (!jumpInput) return;
-  jumpInput.max = (currentMode === 'learn' && learnFilter === 'repeat')
+function jumpMaxNumber() {
+  return (currentMode === 'learn' && learnFilter === 'repeat')
     ? ORIGINAL_QUESTIONS.length
     : questions.length;
+}
+
+function openJumpInput() {
+  if (!jumpInput || !counterEl || !questions.length) return;
+  jumpInput.value = '';
+  jumpInput.max = jumpMaxNumber();
+  jumpInput.placeholder = '1–' + jumpMaxNumber();
+  jumpInput.classList.remove('error');
+  counterEl.hidden = true;
+  jumpInput.hidden = false;
+  jumpInput.focus();
+}
+
+function closeJumpInput() {
+  if (!jumpInput || !counterEl) return;
+  jumpInput.hidden = true;
+  counterEl.hidden = false;
+}
+
+function submitJump() {
+  const num = parseInt(jumpInput.value, 10);
+  const idx = num ? findQuestionIndexByNumber(num) : -1;
+  if (idx < 0) {
+    jumpInput.classList.add('error');   // номера нет в текущем списке
+    return;
+  }
+  closeJumpInput();
+  scrollToQuestion(idx);
+}
+
+if (counterEl) counterEl.addEventListener('click', openJumpInput);
+
+if (jumpInput) {
+  jumpInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); submitJump(); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeJumpInput(); }
+  });
+  jumpInput.addEventListener('input', () => jumpInput.classList.remove('error'));
+  // Тап мимо поля — просто закрываем, вернув счётчик.
+  jumpInput.addEventListener('blur', () => setTimeout(closeJumpInput, 100));
 }
 
 // Возврат к тому месту, где остановились: первый неотвеченный вопрос.
@@ -588,8 +609,6 @@ function scrollToResumePoint() {
   requestAnimationFrame(() => scrollToQuestion(next, 'auto'));
   setTimeout(() => scrollToQuestion(next, 'auto'), 150);
 }
-
-syncJumpLimit();
 
 // --- Перенос прогресса между браузерами: код-строка + файл ---
 // Бэкенда нет, поэтому прогресс переносится текстом: ответы и список
