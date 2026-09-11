@@ -63,7 +63,6 @@
   .sticky-controls .progress { margin-top: 8px; }
   .sticky-controls .repeat-filter { margin-top: 8px; }
   .sticky-controls .learn-tools { margin-top: 8px; }
-  .sticky-controls .jump-grid { max-height: 38vh; }
   h1 {
     font-size: 16px;
     font-weight: 600;
@@ -313,87 +312,54 @@
   body.no-ru .ru-only {
     display: none !important;
   }
-  /* --- Быстрый переход к вопросу --- */
-  /* Панель живёт в липкой шапке, в одной строке с тумблером перевода: кнопка
-     всегда под рукой, а раскрытая сетка занимает всю ширину строки. */
-  .jumpbox {
+  /* --- Быстрый переход к вопросу: компактное поле в липкой шапке --- */
+  .jumpto {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     margin-left: auto;
+  }
+  .jumpto-label {
+    font-size: 12px;
+    color: #999;
+    white-space: nowrap;
+  }
+  .jumpto-input {
+    width: 54px;
+    padding: 5px 6px;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    text-align: center;
+    color: #1a1a1a;
+    -webkit-appearance: none;
+    appearance: none;
+    -moz-appearance: textfield;
+    transition: border-color 0.15s ease;
+  }
+  .jumpto-input::-webkit-outer-spin-button,
+  .jumpto-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .jumpto-input:focus { outline: none; border-color: #999; }
+  .jumpto-input.error { border-color: #b3261e; }
+  .jumpto-btn {
+    padding: 5px 10px;
     background: transparent;
     border: 1px solid #e0e0e0;
     border-radius: 6px;
-    padding: 0 10px;
-  }
-  .jumpbox[open] {
-    flex: 1 0 100%;
-    margin-left: 0;
-    background: #ffffff;
-    border-color: #ececec;
-  }
-  .jumpbox > summary {
-    padding: 5px 0;
-    font-size: 12px;
-    color: #777;
-    cursor: pointer;
-    list-style: none;
-    white-space: nowrap;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .jumpbox > summary::-webkit-details-marker { display: none; }
-  .jumpbox > summary::before {
-    content: '▸';
-    display: inline-block;
-    margin-right: 8px;
-    font-size: 11px;
-    transition: transform 0.15s ease;
-  }
-  .jumpbox[open] > summary::before { transform: rotate(90deg); }
-  .jumpbox > summary:hover { color: #1a1a1a; }
-  .jump-body { padding-bottom: 12px; }
-  .jump-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 14px;
-    margin-bottom: 10px;
-    font-size: 11px;
-    color: #999;
-  }
-  .jl { display: inline-flex; align-items: center; gap: 5px; }
-  .jl::before {
-    content: '';
-    width: 10px;
-    height: 10px;
-    border-radius: 3px;
-    background: #ececec;
-    border: 1px solid #dcdcdc;
-  }
-  .jl.ok::before { background: #e8f4ea; border-color: #b9ddc0; }
-  .jl.err::before { background: #fdeaea; border-color: #f3c2c2; }
-  .jl.marked::before { background: #fdf4e6; border-color: #e0b96a; }
-  .jump-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
-    gap: 6px;
-    max-height: 42vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .jump-cell {
-    padding: 8px 2px;
-    background: #fafafa;
-    border: 1px solid #e6e6e6;
-    border-radius: 6px;
     font-family: inherit;
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    line-height: 1.2;
     color: #777;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: border-color 0.15s ease;
+    transition: color 0.15s ease, border-color 0.15s ease;
   }
-  .jump-cell:hover { border-color: #999; }
-  .jump-cell.ok { background: #e8f4ea; border-color: #b9ddc0; color: #1b5e20; }
-  .jump-cell.err { background: #fdeaea; border-color: #f3c2c2; color: #b3261e; }
-  .jump-cell.marked { border-color: #e0b96a; border-width: 2px; font-weight: 600; }
+  .jumpto-btn:hover { color: #1a1a1a; border-color: #999; }
   .question {
     background: #ffffff;
     border: 1px solid #ececec;

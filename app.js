@@ -273,7 +273,7 @@ function render() {
   });
 
   updateProgress();
-  renderJumpGrid();
+  syncJumpLimit();
   if (currentMode === 'test') testPoolFresh = false;
 }
 
@@ -533,45 +533,45 @@ if (ruBtn) {
   });
 }
 
-// --- Быстрый переход к вопросу: сетка номеров + возврат к месту остановки ---
-const jumpBox = document.getElementById('jumpBox');
-const jumpGridEl = document.getElementById('jumpGrid');
-const jumpSummaryEl = document.getElementById('jumpSummary');
+// --- Быстрый переход к вопросу: поле с номером + возврат к месту остановки ---
+const jumpForm = document.getElementById('jumpForm');
+const jumpInput = document.getElementById('jumpInput');
 
-// Квадратик на вопрос: цвет = состояние ответа, рамка = метка «на повторение».
-function renderJumpGrid() {
-  if (!jumpGridEl) return;
-  jumpGridEl.innerHTML = '';
-  questions.forEach((q, qi) => {
-    const cell = document.createElement('button');
-    cell.type = 'button';
-    cell.className = 'jump-cell';
-    const answer = state.answers[qi];
-    if (answer !== null) {
-      cell.classList.add(answer === q.correct ? 'ok' : 'err');
+// Ищем ровно тот номер, который написан в заголовке карточки: в повторении это
+// номер из полного списка (там пропуски), в остальных режимах — позиция.
+function findQuestionIndexByNumber(num) {
+  if (currentMode === 'learn' && learnFilter === 'repeat') {
+    for (let i = 0; i < questions.length; i++) {
+      if (originalNumberOf(questions[i]) === num) return i;
     }
-    if (marksStore.has(keyOf(q))) cell.classList.add('marked');
-
-    const origNum = originalNumberOf(q);
-    const showOrig = currentMode === 'learn' && learnFilter === 'repeat' && origNum;
-    cell.textContent = showOrig ? origNum : qi + 1;
-    cell.title = showOrig ? `Вопрос ${qi + 1} (№ ${origNum} в списке)` : `Вопрос ${qi + 1}`;
-
-    cell.addEventListener('click', () => {
-      if (jumpBox) jumpBox.open = false;
-      scrollToQuestion(qi);
-    });
-    jumpGridEl.appendChild(cell);
-  });
-
-  if (jumpSummaryEl) {
-    // Коротко, иначе кнопка не встаёт в одну строку с тумблером перевода.
-    const left = questions.length - state.answered;
-    jumpSummaryEl.textContent = left > 0 ? `К вопросу · ${left}` : 'К вопросу';
-    jumpSummaryEl.title = left > 0
-      ? `Список вопросов — не отвечено ${left}`
-      : 'Список вопросов';
+    return -1;
   }
+  return (num >= 1 && num <= questions.length) ? num - 1 : -1;
+}
+
+function flashJumpError() {
+  if (!jumpInput) return;
+  jumpInput.classList.add('error');
+  setTimeout(() => jumpInput.classList.remove('error'), 900);
+}
+
+if (jumpForm) {
+  jumpForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const num = parseInt(jumpInput.value, 10);
+    if (!num || num < 1) { flashJumpError(); return; }
+    const idx = findQuestionIndexByNumber(num);
+    if (idx < 0) { flashJumpError(); return; }   // вопроса нет в текущем списке
+    jumpInput.blur();
+    scrollToQuestion(idx);
+  });
+}
+
+function syncJumpLimit() {
+  if (!jumpInput) return;
+  jumpInput.max = (currentMode === 'learn' && learnFilter === 'repeat')
+    ? ORIGINAL_QUESTIONS.length
+    : questions.length;
 }
 
 // Возврат к тому месту, где остановились: первый неотвеченный вопрос.
@@ -588,6 +588,8 @@ function scrollToResumePoint() {
   requestAnimationFrame(() => scrollToQuestion(next, 'auto'));
   setTimeout(() => scrollToQuestion(next, 'auto'), 150);
 }
+
+syncJumpLimit();
 
 // --- Перенос прогресса между браузерами: код-строка + файл ---
 // Бэкенда нет, поэтому прогресс переносится текстом: ответы и список
@@ -798,7 +800,6 @@ function makeMarkButton(q) {
     saveMarks();
     sync(marked);
     updateRepeatCount();
-    renderJumpGrid();
     // Список намеренно НЕ перестраивается: карточка не должна исчезать под пальцем.
     // Снятая метка учтётся при следующем переключении фильтра.
   });
