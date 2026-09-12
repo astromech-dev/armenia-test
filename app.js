@@ -183,8 +183,9 @@ function render() {
       head.appendChild(badge);
     }
 
-    // Метка «на повторение» — только в обучении: там она и ставится, и читается.
-    if (currentMode === 'learn') {
+    // В обучении метка доступна всегда, в самопроверке — только после ответа:
+    // до ответа она отвлекала бы от «экзаменационного» вида.
+    if (currentMode === 'learn' || state.answers[qi] !== null) {
       head.appendChild(makeMarkButton(q));
     }
 
@@ -288,11 +289,13 @@ function answer(qi, oi) {
   if (currentMode === 'learn') {
     answersStore[keyOf(q)] = oi;
     saveAnswers();
-    if (!ok && !marksStore.has(keyOf(q))) {
-      marksStore.add(keyOf(q));
-      saveMarks();
-      updateRepeatCount();
-    }
+  }
+  // А вот список на повторение пополняется в обоих режимах: промах на
+  // самопроверке — такой же повод повторить вопрос.
+  if (!ok && !marksStore.has(keyOf(q))) {
+    marksStore.add(keyOf(q));
+    saveMarks();
+    updateRepeatCount();
   }
   render();
 
@@ -391,6 +394,7 @@ function showSummary(scroll = true) {
     </div>
     <div class="note">Проходной балл — ${threshold} и более</div>
   `;
+
   quizEl.appendChild(div);
   if (scroll) {
     setTimeout(() => div.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
