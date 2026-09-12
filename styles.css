@@ -312,6 +312,31 @@
   body.no-ru .ru-only {
     display: none !important;
   }
+  /* …кроме одного вопроса, которому в самопроверке перевод раскрыли вручную. */
+  body.test-mode .question.show-ru .q-ru { display: block !important; }
+  body.test-mode .question.show-ru .option .opt-ru { display: block !important; }
+  .ru-one-btn {
+    display: inline-flex;
+    align-items: center;
+    background: transparent;
+    border: 1px solid #e6e6e6;
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-family: inherit;
+    font-size: 11px;
+    color: #999;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+  .ru-one-btn:hover { color: #1a1a1a; border-color: #c9c9c9; }
+  .ru-one-btn[aria-pressed="true"] {
+    background: #eef1f8;
+    border-color: #c9d2e8;
+    color: #3a4a7a;
+  }
   /* --- Быстрый переход к вопросу: счётчик прогресса работает как кнопка --- */
   .counter-btn {
     background: transparent;

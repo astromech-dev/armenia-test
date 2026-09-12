@@ -183,6 +183,11 @@ function render() {
       head.appendChild(badge);
     }
 
+    // В самопроверке — кнопка перевода этого одного вопроса.
+    if (currentMode === 'test') {
+      head.appendChild(makeRuButton(q, card));
+    }
+
     // В обучении метка доступна всегда, в самопроверке — только после ответа:
     // до ответа она отвлекала бы от «экзаменационного» вида.
     if (currentMode === 'learn' || state.answers[qi] !== null) {
@@ -409,6 +414,7 @@ resetBtn.addEventListener('click', () => {
     // их чистит отдельная кнопка в строке фильтра.
     answersStore = {};
     saveAnswers();
+    revealedRu.clear();
     modeData.learn.questions = buildLearnQuestions();
     modeData.test.questions  = buildTestQuestions();
     modeData.learn.state = stateFromStore(modeData.learn.questions);
@@ -794,6 +800,36 @@ const repeatRetryBtn = document.getElementById('repeatRetryBtn');
 const repeatClearBtn = document.getElementById('repeatClearBtn');
 const rfAllCountEl = document.getElementById('rfAllCount');
 const rfRepeatCountEl = document.getElementById('rfRepeatCount');
+
+// В самопроверке перевода нет вовсе, но иногда нужно понять ОДИН вопрос.
+// Храним раскрытые вопросы по ключу: render() перерисовывает карточки после
+// каждого ответа, иначе состояние терялось бы.
+const revealedRu = new Set();
+
+function makeRuButton(q, card) {
+  const key = keyOf(q);
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'ru-one-btn';
+
+  function sync(shown) {
+    btn.setAttribute('aria-pressed', shown ? 'true' : 'false');
+    btn.textContent = shown ? 'Скрыть перевод' : 'Перевод';
+    btn.title = shown
+      ? 'Скрыть русский перевод этого вопроса'
+      : 'Показать русский перевод только этого вопроса';
+    card.classList.toggle('show-ru', shown);
+  }
+  sync(revealedRu.has(key));
+
+  btn.addEventListener('click', () => {
+    const shown = !revealedRu.has(key);
+    if (shown) revealedRu.add(key); else revealedRu.delete(key);
+    // Высота карточки меняется — держим позицию, чтобы страница не прыгала.
+    withScrollAnchor(() => sync(shown));
+  });
+  return btn;
+}
 
 function makeMarkButton(q) {
   const key = keyOf(q);
